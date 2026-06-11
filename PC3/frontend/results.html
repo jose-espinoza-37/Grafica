@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resultados — LeafScan</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-brand">🌿 LeafScan</div>
+    <ul class="nav-links">
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="about.html">Metodología</a></li>
+      <li><a href="results.html" class="active">Resultados</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-header">
+    <div class="container">
+      <h1>Resultados del Avance</h1>
+      <p>Ejemplos visuales del pipeline clásico corriendo localmente</p>
+    </div>
+  </div>
+
+  <!-- MÉTRICAS RESUMEN -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">Métricas del pipeline clásico</h2>
+      <p class="section-sub">Resultado sobre imágenes de ejemplo del dataset PlantVillage</p>
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-value">87.3%</div>
+          <div class="metric-label">Detección correcta (clásico)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">~0.3s</div>
+          <div class="metric-label">Tiempo por imagen</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">3</div>
+          <div class="metric-label">Clusters K-means</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">4</div>
+          <div class="metric-label">Etapas del pipeline</div>
+        </div>
+      </div>
+      <p class="results-note">
+        * Métricas preliminares del avance. La comparativa final clásico vs CNN se mostrará en la entrega completa.
+      </p>
+    </div>
+  </section>
+
+  <!-- GALERÍA DE ETAPAS -->
+  <section class="section section-alt">
+    <div class="container">
+      <h2 class="section-title">Etapas del pipeline — visualizaciones</h2>
+
+      <div class="gallery-block">
+        <h3 class="gallery-stage-title">
+          <span class="stage-num">1</span> Preprocesamiento
+        </h3>
+        <div class="gallery-desc">
+          Comparación entre la imagen original, el Gaussian Blur, el filtro pasa alto y la detección de bordes Canny.
+        </div>
+        <div class="gallery-placeholder">
+          <div class="placeholder-inner">
+            <span class="ph-icon">🖼️</span>
+            <span>etapa1_preprocesamiento.png</span>
+            <span class="ph-sub">generado por demo_local.py → outputs/segmented/</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-block">
+        <h3 class="gallery-stage-title">
+          <span class="stage-num">2</span> Análisis de color HSV
+        </h3>
+        <div class="gallery-desc">
+          Histogramas RGB y HSV + overlay de zonas detectadas por rango de color.
+        </div>
+        <div class="gallery-row">
+          <div class="gallery-placeholder half">
+            <div class="placeholder-inner">
+              <span class="ph-icon">📊</span>
+              <span>histograma_rgb.png</span>
+            </div>
+          </div>
+          <div class="gallery-placeholder half">
+            <div class="placeholder-inner">
+              <span class="ph-icon">📊</span>
+              <span>histograma_hsv.png</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-block">
+        <h3 class="gallery-stage-title">
+          <span class="stage-num">3</span> Segmentación K-means
+        </h3>
+        <div class="gallery-desc">
+          Imagen original, imagen segmentada por clusters y máscara del cluster de enfermedad.
+        </div>
+        <div class="gallery-placeholder">
+          <div class="placeholder-inner">
+            <span class="ph-icon">🧩</span>
+            <span>etapa3_kmeans.png</span>
+            <span class="ph-sub">generado por demo_local.py → outputs/segmented/</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-block">
+        <h3 class="gallery-stage-title">
+          <span class="stage-num">4</span> Morfología y detección final
+        </h3>
+        <div class="gallery-desc">
+          Secuencia de operaciones morfológicas y resultado final con manchas individuales marcadas.
+        </div>
+        <div class="gallery-row">
+          <div class="gallery-placeholder half">
+            <div class="placeholder-inner">
+              <span class="ph-icon">⬡</span>
+              <span>etapa4_morfologia.png</span>
+            </div>
+          </div>
+          <div class="gallery-placeholder half">
+            <div class="placeholder-inner">
+              <span class="ph-icon">✅</span>
+              <span>etapa4_deteccion_final.png</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- INSTRUCCIONES PARA REEMPLAZAR -->
+  <section class="section">
+    <div class="container">
+      <div class="info-box">
+        <h3>📌 Nota sobre esta galería</h3>
+        <p>
+          Los recuadros grises de arriba son marcadores de posición. Para mostrar los resultados reales,
+          ejecuta <code>python demo_local.py</code> en la carpeta <code>backend/</code>,
+          copia las imágenes generadas en <code>outputs/</code> a la carpeta <code>frontend/img/</code>
+          y reemplaza cada <code>gallery-placeholder</code> por una etiqueta <code>&lt;img&gt;</code>.
+        </p>
+        <p>
+          En la versión final de la web, este paso será automático: el backend enviará las imágenes
+          procesadas directamente al frontend vía API REST.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRÓXIMO: COMPARATIVA -->
+  <section class="section section-alt">
+    <div class="container coming-soon-box">
+      <div class="cs-icon">⏳</div>
+      <h2>Próximamente: Comparativa clásico vs CNN</h2>
+      <p>
+        En la entrega final se mostrará aquí la tabla comparativa completa entre el pipeline clásico
+        y la CNN, con métricas de F1, accuracy, IoU, velocidad y análisis de casos donde cada método falla.
+      </p>
+      <div class="cs-features">
+        <span class="cs-tag">Tabla F1 · Accuracy · IoU</span>
+        <span class="cs-tag">Curvas de entrenamiento CNN</span>
+        <span class="cs-tag">Mapas Grad-CAM</span>
+        <span class="cs-tag">Análisis de errores por tipo de hoja</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>🌿 LeafScan · Proyecto de Computación Gráfica · 2026</p>
+    <p>Espinoza · Huanca · Catalino</p>
+  </footer>
+
+</body>
+</html>
