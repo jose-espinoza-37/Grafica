@@ -1,11 +1,46 @@
 # Ignorar todo
 *
 
-# Permitir la carpeta PC3
-!PC3/
-!PC3/**
-
 # Permitir el propio .gitignore
 !.gitignore
 
-PC3/data/raw/plantvillage-tomato-leaf-dataset.zip
+# Permitir PC3 completo
+!PC3/
+!PC3/**
+
+# Permitir PC4
+!PC4/
+
+# Dentro de PC4 ignorar todo
+PC4/*
+
+# Excepto pollo-cosmico
+!PC4/pollo-cosmico/
+!PC4/pollo-cosmico/**
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+**/venv/
+**/.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables de entorno
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Comprimidos
+*.zip
+
+# Dataset grande
+PC3/data/raw/plantvillage-tomato-leaf-dataset.zip/data/raw/plantvillage-tomato-leaf-dataset.zip

@@ -1,4 +1,4 @@
-# Procedimiento para ejecutar el avance
+x|# Procedimiento para ejecutar el avance
 ## LeafScan — Detector de Enfermedades en Hojas
 
 ---
@@ -39,6 +39,9 @@ python -m venv venv
 
 # Activar en Windows:
 venv\Scripts\activate
+
+# En caso de que no mande error por permisos de activación
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 # Activar en Mac / Linux:
 source venv/bin/activate
