@@ -17,6 +17,7 @@ from src.core import settings
 from src.core.asset_manager import AssetManager
 from src.core.input_manager import InputManager
 from src.core.state_manager import StateManager
+from src.audio.audio_manager import AudioManager
 from src.utils import pixelate
 
 
@@ -39,15 +40,13 @@ class Game:
         self.assets = AssetManager()
         self.input = InputManager()
         self.states = StateManager()
+        self.audio = AudioManager(self.assets)
 
         self.running = True
 
     def run(self) -> None:
-        # NOTA PARA PERSONA 3: esta es una escena de prueba temporal, solo
-        # para validar física/colisión/cámara. Reemplazar por MenuScene
-        # apenas esté lista: self.states.switch_to(MenuScene(self))
-        from src.scenes._physics_test_scene import PhysicsTestScene
-        self.states.switch_to(PhysicsTestScene(self))
+        from src.scenes.menu_scene import MenuScene
+        self.states.switch_to(MenuScene(self))
 
         while self.running:
             dt = self.clock.tick(settings.FPS) / 1000.0

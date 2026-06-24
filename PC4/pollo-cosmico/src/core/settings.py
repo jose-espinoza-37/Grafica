@@ -69,3 +69,42 @@ AUDIO_DIR = f"{ASSETS_DIR}/audio"
 CINEMATICS_DIR = f"{ASSETS_DIR}/cinematics"
 LEVELS_DIR = f"{ASSETS_DIR}/levels"
 FONTS_DIR = f"{ASSETS_DIR}/fonts"
+
+# ======================================================================
+# A partir de aquí: constantes agregadas por Persona 2 (Player, enemigos,
+# power-ups, checkpoint y mecánicas de nivel). Mismo archivo compartido,
+# no uno nuevo, para que todo siga en un solo lugar.
+# ======================================================================
+
+# --- Player: tamaño y vida/transformación ---
+PLAYER_WIDTH = 14
+PLAYER_HEIGHT = 20
+HIT_INVULNERABILITY_TIME = 0.8     # segundos de invulnerabilidad tras recibir un golpe
+
+# --- Player: ataque (mecánica de tutorial del Nivel 1) ---
+PLAYER_ATTACK_RANGE = 14            # ancho del hitbox de ataque, en píxeles
+PLAYER_ATTACK_DURATION = 0.15        # segundos que el hitbox de ataque está activo
+PLAYER_ATTACK_COOLDOWN = 0.35        # segundos antes de poder atacar de nuevo
+
+# --- Power-ups ---
+DISGUISE_DURATION = 15.0             # segundos de inmunidad de "Yo También Digo Pío"
+
+# --- Enemigos ---
+ENEMY_ATTACK_COOLDOWN = 1.0          # segundos entre golpes del mismo enemigo
+ENEMY_PATROL_SPEED = 40.0            # px/s, velocidad de patrulla por defecto
+
+# --- Mecánicas de nivel ---
+BOOST_PAD_VELOCITY = -460.0          # impulso vertical de las raíces/plataformas (Nivel 3, bosque)
+
+# --- Colores de depuración para las entidades de Persona 2 ---
+COLOR_CHECKPOINT_OFF = (120, 100, 60)
+COLOR_CHECKPOINT_ON = (240, 210, 90)
+COLOR_ENEMY_ROBOT = (150, 150, 160)
+COLOR_ENEMY_MUTANT = (200, 90, 70)
+COLOR_GRAVITY_ZONE = (120, 90, 220)
+COLOR_BOOST_PAD = (90, 200, 160)
+COLOR_CYCLIC_PLATFORM = (210, 170, 90)
+COLOR_POWERUP_DOUBLE_JUMP = (250, 230, 140)
+COLOR_POWERUP_DISGUISE = (250, 170, 60)
+COLOR_PLAYER_HUMAN = (240, 200, 60)
+COLOR_PLAYER_TRANSFORMED = (235, 235, 235)

@@ -7,6 +7,8 @@ Ejecutar siempre desde la carpeta raíz del proyecto (pollo-cosmico/):
     python main.py
 """
 
+
+
 from src.core.game import Game
 
 
@@ -17,3 +19,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
