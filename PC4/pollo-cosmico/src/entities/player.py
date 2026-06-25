@@ -34,6 +34,22 @@ STAGE_PATAS_POLLO = 1
 STAGE_ALAS_POLLO = 2
 STAGE_POLLO_COMPLETO = 3
 
+_ANIM_FPS = 8.0  # fotogramas de animación por segundo
+
+_WALK_FRAMES = {
+    STAGE_HUMANO:        7,
+    STAGE_PATAS_POLLO:   7,
+    STAGE_ALAS_POLLO:    7,
+    STAGE_POLLO_COMPLETO: 4,
+}
+
+_SPRITE_KEY = {
+    STAGE_HUMANO:        'player_human',
+    STAGE_PATAS_POLLO:   'player_patas',
+    STAGE_ALAS_POLLO:    'player_alas',
+    STAGE_POLLO_COMPLETO: 'player_pollo',
+}
+
 
 class Player(PhysicsBody, Entity):
     def __init__(self, x: float, y: float) -> None:
@@ -48,6 +64,9 @@ class Player(PhysicsBody, Entity):
         self._invulnerable_timer = 0.0      # evita golpes repetidos del mismo enemigo en el mismo frame
         self._attack_timer = 0.0            # cuánto le queda activo al hitbox de ataque
         self._attack_cooldown = 0.0
+
+        self._anim_timer = 0.0
+        self._anim_frame = 0
 
     # ------------------------------------------------------------------
     # Update principal: llamar una vez por frame desde PlayScene.
@@ -79,6 +98,7 @@ class Player(PhysicsBody, Entity):
         self._invulnerable_timer = max(0.0, self._invulnerable_timer - dt)
         self._attack_timer = max(0.0, self._attack_timer - dt)
         self._attack_cooldown = max(0.0, self._attack_cooldown - dt)
+        self._update_animation(dt)
 
     # ------------------------------------------------------------------
     # Input
@@ -154,6 +174,7 @@ class Player(PhysicsBody, Entity):
         self.stage = min(self.stage + 1, STAGE_POLLO_COMPLETO)
         self.powerups.clear_all()
         self._invulnerable_timer = settings.HIT_INVULNERABILITY_TIME
+        self._reset_anim()
 
         if self.stage >= STAGE_POLLO_COMPLETO:
             self.defeated = True
@@ -169,6 +190,7 @@ class Player(PhysicsBody, Entity):
         self.defeated = False
         self.powerups.clear_all()
         self._invulnerable_timer = settings.HIT_INVULNERABILITY_TIME
+        self._reset_anim()
 
     def heal_full(self) -> None:
         """Llamar al beber un frasco al final de nivel: revierte cualquier
@@ -177,11 +199,37 @@ class Player(PhysicsBody, Entity):
         self.defeated = False
 
     # ------------------------------------------------------------------
-    # Dibujo (placeholder hasta tener los sprites por etapa)
+    # Animación
     # ------------------------------------------------------------------
-    def draw(self, surface: pygame.Surface, camera) -> None:
-        color = settings.COLOR_PLAYER_HUMAN if self.stage == STAGE_HUMANO else settings.COLOR_PLAYER_TRANSFORMED
-        self.draw_placeholder(surface, camera, self.rect, color)
+    def _update_animation(self, dt: float) -> None:
+        if abs(self.vx) < 1.0:
+            self._anim_frame = 0
+            self._anim_timer = 0.0
+            return
+        self._anim_timer += dt
+        interval = 1.0 / _ANIM_FPS
+        if self._anim_timer >= interval:
+            self._anim_timer -= interval
+            max_frames = _WALK_FRAMES.get(self.stage, 1)
+            self._anim_frame = (self._anim_frame + 1) % max_frames
+
+    def _reset_anim(self) -> None:
+        self._anim_frame = 0
+        self._anim_timer = 0.0
+
+    # ------------------------------------------------------------------
+    # Dibujo
+    # ------------------------------------------------------------------
+    def draw(self, surface: pygame.Surface, camera, assets=None) -> None:
+        rect = camera.apply(self.rect)
+
+        if assets is not None:
+            key = _SPRITE_KEY.get(self.stage, 'player_human')
+            frame = assets.get_player_frame(key, self._anim_frame, (rect.width, rect.height), flip_x=not self.facing_right)
+            surface.blit(frame, rect)
+        else:
+            color = settings.COLOR_PLAYER_HUMAN if self.stage == STAGE_HUMANO else settings.COLOR_PLAYER_TRANSFORMED
+            self.draw_placeholder(surface, camera, self.rect, color)
 
         attack_rect = self.attack_rect
         if attack_rect is not None:

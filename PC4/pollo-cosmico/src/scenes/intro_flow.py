@@ -27,6 +27,9 @@ from src.entities.player import Player
 from src.entities.enemy import Enemy
 from src.entities.checkpoint import Checkpoint
 from src.entities.powerup_item import PowerUpItem
+from src.entities.gravity_zone import GravityZone
+from src.entities.boost_pad import BoostPad
+from src.entities.cyclic_platform import CyclicPlatform
 from src.scenes.play_scene import PlayScene, LevelConfig
 from src.scenes.cinematic_scene import CinematicScene, CinematicBeat, build_botiquin_vacio_beat
 from src.scenes.gameover_scene import GameOverScene
@@ -61,24 +64,24 @@ def start_new_game(game) -> None:
 
 
 def _build_nivel1_config() -> LevelConfig:
-    ground = pygame.Rect(0, 160, 800, 20)
-    platform_a = pygame.Rect(120, 120, 50, 8)   # esquina angosta: sirve para probar corner correction
-    platform_b = pygame.Rect(420, 130, 70, 8)
+    ground = pygame.Rect(0, 320, 1600, 40)
+    platform_a = pygame.Rect(240, 240, 100, 16)  # esquina angosta: sirve para probar corner correction
+    platform_b = pygame.Rect(840, 260, 140, 16)
 
     robot = Enemy(
-        300, 140, width=16, height=20,
-        patrol_min_x=280, patrol_max_x=360,
+        600, 280, width=32, height=40,
+        patrol_min_x=560, patrol_max_x=720,
         is_mutant=False,  # Nivel 1: robots de seguridad, no mutantes
     )
 
-    checkpoint = Checkpoint(400, 140)  # a mitad del recorrido (0 a 800)
-    double_jump_item = PowerUpItem(150, 140, PowerUpItem.KIND_DOUBLE_JUMP)
-    goal_rect = pygame.Rect(770, 110, 20, 50)
+    checkpoint = Checkpoint(800, 280, 32, 64)  # a mitad del recorrido (0 a 1600)
+    double_jump_item = PowerUpItem(300, 280, PowerUpItem.KIND_DOUBLE_JUMP, width=24, height=24)
+    goal_rect = pygame.Rect(1540, 220, 40, 100)
 
     return LevelConfig(
-        start_pos=(20, 140),
-        level_width=800,
-        level_height=180,
+        start_pos=(40, 280),
+        level_width=1600,
+        level_height=360,
         solids=[ground, platform_a, platform_b],
         enemies=[robot],
         checkpoint=checkpoint,
@@ -91,7 +94,7 @@ def _build_nivel1_config() -> LevelConfig:
 
 
 def _go_to_nivel1(game) -> None:
-    player = Player(20, 140)
+    player = Player(40, 280)
     config = _build_nivel1_config()
     scene = PlayScene(game, player, config, on_level_complete=lambda: _on_nivel1_complete(game))
     game.states.switch_to(scene)
@@ -108,20 +111,126 @@ def _on_nivel1_complete(game) -> None:
         ),
     ]
 
-    def _continue() -> None:
-        # NOTA: Nivel 2, 3 y 4 se agregan con el mismo patrón que _go_to_nivel1.
-        # Por ahora la demo termina aquí y vuelve al menú.
-        game.states.switch_to(
-            GameOverScene(
-                game,
-                message="Fin de la demo - continua en el Nivel 2",
-                bg_color=settings.COLOR_BLACK,
-                text_color=settings.COLOR_WHITE,
-                hold_seconds=0.5,
-            )
-        )
+    game.states.switch_to(CinematicScene(game, beats, on_finish=lambda: _go_to_nivel2(game)))
 
-    game.states.switch_to(CinematicScene(game, beats, on_finish=_continue))
+
+# ======================================================================
+# Nivel 2 (jugable) — Ciudad Evacuada (zonas de gravedad alterada)
+# ======================================================================
+
+def _build_nivel2_config() -> LevelConfig:
+    ground = pygame.Rect(0, 320, 2000, 40)
+
+    plat_alta_a = pygame.Rect(560, 180, 120, 16)   # solo se alcanza con gravedad ligera
+    plat_media  = pygame.Rect(900, 240, 140, 16)
+
+    zona_ligera = GravityZone(500, 110, 260, 210, gravity_scale=0.3)   # flotás hacia arriba
+    zona_pesada = GravityZone(1300, 200, 200, 120, gravity_scale=1.8)  # sector "plomo"
+
+    mutante_1 = Enemy(700, 280, width=32, height=40,
+                      patrol_min_x=640, patrol_max_x=820, is_mutant=True)
+    mutante_2 = Enemy(1500, 280, width=32, height=40,
+                      patrol_min_x=1440, patrol_max_x=1620, is_mutant=True)
+
+    checkpoint = Checkpoint(1000, 256, 32, 64)  # a mitad de 0..2000
+
+    disfraz     = PowerUpItem(450, 280, PowerUpItem.KIND_DISGUISE, width=24, height=24)
+    doble_salto = PowerUpItem(1150, 280, PowerUpItem.KIND_DOUBLE_JUMP, width=24, height=24)
+
+    goal_rect = pygame.Rect(1940, 220, 40, 100)
+
+    return LevelConfig(
+        start_pos=(40, 280),
+        level_width=2000,
+        level_height=360,
+        solids=[ground, plat_alta_a, plat_media],
+        enemies=[mutante_1, mutante_2],
+        checkpoint=checkpoint,
+        gravity_zones=[zona_ligera, zona_pesada],
+        powerup_items=[disfraz, doble_salto],
+        goal_rect=goal_rect,
+        has_danger=True,
+        music_path=f"{settings.AUDIO_DIR}/music/nivel2.ogg",
+    )
+
+
+def _go_to_nivel2(game) -> None:
+    beats = [
+        CinematicBeat(
+            image_path=f"{settings.CINEMATICS_DIR}/rotacion_2_detectada.png",
+            lines=["ROTACIÓN 2/4"],
+        ),
+    ]
+
+    def _arrancar() -> None:
+        player = Player(40, 280)
+        config = _build_nivel2_config()
+        scene = PlayScene(game, player, config, on_level_complete=lambda: _go_to_nivel3(game))
+        game.states.switch_to(scene)
+
+    game.states.switch_to(CinematicScene(game, beats, on_finish=_arrancar))
+
+
+# ======================================================================
+# Nivel 3 (jugable) — Bosque Mutante -> Playa Distorsionada
+# ======================================================================
+
+def _build_nivel3_config() -> LevelConfig:
+    ground = pygame.Rect(0, 320, 2200, 40)
+
+    pad_1 = BoostPad(300, 300, 60, 20)
+    pad_2 = BoostPad(740, 300, 60, 20)
+    plat_bosque_a = pygame.Rect(270, 160, 120, 16)
+    plat_bosque_b = pygame.Rect(700, 200, 130, 16)
+
+    mutante_bosque = Enemy(520, 280, width=32, height=40,
+                           patrol_min_x=460, patrol_max_x=640, is_mutant=True)
+
+    checkpoint = Checkpoint(1100, 256, 32, 64)  # transición bosque -> playa
+
+    ciclo_1 = CyclicPlatform(1320, 260, 100, 16, visible_time=2.0, hidden_time=1.5, start_visible=True)
+    ciclo_2 = CyclicPlatform(1560, 230, 100, 16, visible_time=1.5, hidden_time=1.5, start_visible=False)
+    ciclo_3 = CyclicPlatform(1820, 260, 100, 16, visible_time=2.0, hidden_time=1.2, start_visible=True)
+
+    mutante_playa = Enemy(1700, 280, width=32, height=40,
+                          patrol_min_x=1640, patrol_max_x=1900, is_mutant=True)
+
+    disfraz = PowerUpItem(150, 280, PowerUpItem.KIND_DISGUISE, width=24, height=24)
+
+    goal_rect = pygame.Rect(2140, 220, 40, 100)
+
+    return LevelConfig(
+        start_pos=(40, 280),
+        level_width=2200,
+        level_height=360,
+        solids=[ground, plat_bosque_a, plat_bosque_b],
+        enemies=[mutante_bosque, mutante_playa],
+        checkpoint=checkpoint,
+        boost_pads=[pad_1, pad_2],
+        cyclic_platforms=[ciclo_1, ciclo_2, ciclo_3],
+        powerup_items=[disfraz],
+        goal_rect=goal_rect,
+        has_danger=True,
+        music_path=f"{settings.AUDIO_DIR}/music/nivel3.ogg",
+    )
+
+
+def _go_to_nivel3(game) -> None:
+    beats = [
+        CinematicBeat(
+            image_path=f"{settings.CINEMATICS_DIR}/rotacion_3_detectada.png",
+            lines=["ROTACIÓN 3/4"],
+        ),
+    ]
+
+    def _arrancar() -> None:
+        player = Player(40, 280)
+        config = _build_nivel3_config()
+        # Al completar el Nivel 3 arranca la secuencia final de la Rotación 4 (la isla).
+        scene = PlayScene(game, player, config, on_level_complete=lambda: start_rotacion4_demo(game))
+        game.states.switch_to(scene)
+
+    game.states.switch_to(CinematicScene(game, beats, on_finish=_arrancar))
 
 
 # ======================================================================
@@ -129,18 +238,24 @@ def _on_nivel1_complete(game) -> None:
 # ======================================================================
 
 def start_rotacion4_demo(game) -> None:
-    beat = build_botiquin_vacio_beat()
-    game.states.switch_to(CinematicScene(game, [beat], on_finish=lambda: _go_to_isla_caminata(game)))
+    beats = [
+        CinematicBeat(
+            image_path=f"{settings.CINEMATICS_DIR}/rotacion_4_detectada.png",
+            lines=["ROTACIÓN 4/4"],
+        ),
+        build_botiquin_vacio_beat(),
+    ]
+    game.states.switch_to(CinematicScene(game, beats, on_finish=lambda: _go_to_isla_caminata(game)))
 
 
 def _build_isla_config() -> LevelConfig:
-    ground = pygame.Rect(0, 150, 600, 30)
-    cave_entrance = pygame.Rect(560, 100, 30, 50)
+    ground = pygame.Rect(0, 300, 1200, 60)
+    cave_entrance = pygame.Rect(1120, 200, 60, 100)
 
     return LevelConfig(
-        start_pos=(20, 130),
-        level_width=600,
-        level_height=180,
+        start_pos=(40, 260),
+        level_width=1200,
+        level_height=360,
         solids=[ground],
         enemies=[],
         checkpoint=None,
@@ -152,7 +267,7 @@ def _build_isla_config() -> LevelConfig:
 
 
 def _go_to_isla_caminata(game) -> None:
-    player = Player(20, 130)
+    player = Player(40, 260)
     config = _build_isla_config()
     scene = PlayScene(game, player, config, on_level_complete=lambda: _go_to_cueva(game))
     game.states.switch_to(scene)

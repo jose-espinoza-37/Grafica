@@ -8,16 +8,16 @@ a buscarlos dentro de la lógica de cada sistema.
 
 # --- Ventana ---
 TITLE = "El Pollo Cósmico"
-WINDOW_WIDTH = 1024
-WINDOW_HEIGHT = 576
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 720
 FPS = 60
 
 # --- Render pixel art ---
 # El juego se dibuja primero en una superficie pequeña (BASE_WIDTH x BASE_HEIGHT)
 # y luego se escala hacia la ventana real. Esto es lo que da el look de pixel art.
-BASE_WIDTH = 320
-BASE_HEIGHT = 180
-PIXEL_SCALE = WINDOW_WIDTH / BASE_WIDTH  # factor de escalado para la ventana
+BASE_WIDTH = 640
+BASE_HEIGHT = 360
+PIXEL_SCALE = WINDOW_WIDTH / BASE_WIDTH  # 2.0
 
 # --- Colores (placeholders, el arte final los reemplaza) ---
 COLOR_BG = (20, 18, 28)
@@ -27,13 +27,13 @@ COLOR_WHITE = (255, 255, 255)
 COLOR_BLACK = (0, 0, 0)
 
 # --- Física / movimiento ---
-GRAVITY = 1400.0            # px/s^2
-MOVE_SPEED = 110.0          # px/s
-JUMP_VELOCITY = -340.0      # px/s (negativo = hacia arriba)
-MAX_FALL_SPEED = 600.0      # px/s, velocidad terminal de caída
+GRAVITY = 2800.0            # px/s^2
+MOVE_SPEED = 220.0          # px/s
+JUMP_VELOCITY = -680.0      # px/s (negativo = hacia arriba)
+MAX_FALL_SPEED = 1200.0     # px/s, velocidad terminal de caída
 
 # Coyote time: margen para poder saltar justo después de salir de una plataforma.
-COYOTE_TIME = 0.12          # segundos
+COYOTE_TIME = 0.12          # segundos (tiempo puro, no escala con resolución)
 
 # Jump buffer: si el jugador presiona saltar un poco ANTES de tocar el suelo,
 # el salto se ejecuta igual en cuanto aterriza. Mejora la sensación de control.
@@ -42,8 +42,8 @@ JUMP_BUFFER_TIME = 0.10     # segundos
 # Corner correction: cuántos píxeles como máximo se puede "empujar" al jugador
 # hacia un costado para evitar que se pegue en la esquina de una plataforma
 # al saltar casi perfecto.
-CORNER_CORRECTION_MAX_PUSH = 6   # píxeles
-CORNER_CORRECTION_ZONE = 10      # qué tan cerca del borde superior se activa la revisión
+CORNER_CORRECTION_MAX_PUSH = 12
+CORNER_CORRECTION_ZONE = 20
 
 # --- Cámara ---
 CAMERA_SMOOTH = 0.12         # 0 = no se mueve, 1 = sigue instantáneo
@@ -80,12 +80,12 @@ TILE_SIZE = 16   # tamaño en píxeles de cada tile; usar el mismo en todos los 
 # ======================================================================
 
 # --- Player: tamaño y vida/transformación ---
-PLAYER_WIDTH = 14
-PLAYER_HEIGHT = 20
+PLAYER_WIDTH = 28
+PLAYER_HEIGHT = 40
 HIT_INVULNERABILITY_TIME = 0.8     # segundos de invulnerabilidad tras recibir un golpe
 
 # --- Player: ataque (mecánica de tutorial del Nivel 1) ---
-PLAYER_ATTACK_RANGE = 14            # ancho del hitbox de ataque, en píxeles
+PLAYER_ATTACK_RANGE = 28            # ancho del hitbox de ataque, en píxeles
 PLAYER_ATTACK_DURATION = 0.15        # segundos que el hitbox de ataque está activo
 PLAYER_ATTACK_COOLDOWN = 0.35        # segundos antes de poder atacar de nuevo
 
@@ -94,10 +94,10 @@ DISGUISE_DURATION = 15.0             # segundos de inmunidad de "Yo También Dig
 
 # --- Enemigos ---
 ENEMY_ATTACK_COOLDOWN = 1.0          # segundos entre golpes del mismo enemigo
-ENEMY_PATROL_SPEED = 40.0            # px/s, velocidad de patrulla por defecto
+ENEMY_PATROL_SPEED = 80.0            # px/s, velocidad de patrulla por defecto
 
 # --- Mecánicas de nivel ---
-BOOST_PAD_VELOCITY = -460.0          # impulso vertical de las raíces/plataformas (Nivel 3, bosque)
+BOOST_PAD_VELOCITY = -920.0          # impulso vertical de las raíces/plataformas (Nivel 3, bosque)
 
 # --- Colores de depuración para las entidades de Persona 2 ---
 COLOR_CHECKPOINT_OFF = (120, 100, 60)

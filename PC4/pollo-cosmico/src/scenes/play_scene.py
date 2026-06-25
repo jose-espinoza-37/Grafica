@@ -208,7 +208,7 @@ class PlayScene(Scene):
         for enemy in self.config.enemies:
             enemy.draw(surface, self.camera)
 
-        self.player.draw(surface, self.camera)
+        self.player.draw(surface, self.camera, self.game.assets)
 
         if self.config.show_hud:
             self.hud.draw(surface, self.game.assets, self.player)
