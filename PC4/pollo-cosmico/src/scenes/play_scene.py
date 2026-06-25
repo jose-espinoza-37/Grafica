@@ -56,6 +56,12 @@ class LevelConfig:
     music_path: str | None = None
     show_hud: bool = True               # False para el tramo de caminata calma del Nivel 4
 
+    # Si el nivel viene de un mapa de Tiled (ver systems/tilemap_loader.py),
+    # aquí va el TilemapRenderer ya armado. Si es None, PlayScene sigue
+    # dibujando los rectángulos de depuración de siempre (compatibilidad
+    # con niveles armados a mano, como los de intro_flow.py).
+    tilemap_renderer: object | None = None
+
 
 class PlayScene(Scene):
     def __init__(self, game, player, config: LevelConfig, on_level_complete=None) -> None:
@@ -185,8 +191,11 @@ class PlayScene(Scene):
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill(settings.COLOR_BG)
 
-        for solid in self._current_solids():
-            pygame.draw.rect(surface, settings.COLOR_DEBUG_SOLID, self.camera.apply(solid))
+        if self.config.tilemap_renderer is not None:
+            self.config.tilemap_renderer.draw(surface, self.camera)
+        else:
+            for solid in self._current_solids():
+                pygame.draw.rect(surface, settings.COLOR_DEBUG_SOLID, self.camera.apply(solid))
 
         for zone in self.config.gravity_zones:
             zone.draw(surface, self.camera)

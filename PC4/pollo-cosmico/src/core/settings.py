@@ -70,6 +70,9 @@ CINEMATICS_DIR = f"{ASSETS_DIR}/cinematics"
 LEVELS_DIR = f"{ASSETS_DIR}/levels"
 FONTS_DIR = f"{ASSETS_DIR}/fonts"
 
+# --- Tilemaps (niveles diseñados en Tiled, ver systems/tilemap_loader.py) ---
+TILE_SIZE = 16   # tamaño en píxeles de cada tile; usar el mismo en todos los niveles de Tiled
+
 # ======================================================================
 # A partir de aquí: constantes agregadas por Persona 2 (Player, enemigos,
 # power-ups, checkpoint y mecánicas de nivel). Mismo archivo compartido,
