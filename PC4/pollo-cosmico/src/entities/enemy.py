@@ -27,6 +27,9 @@ from src.core import settings
 from src.entities.entity_base import Entity
 from src.entities.cyclic_timer import CyclicTimer
 
+_ANIM_FPS = 8.0   # fotogramas de animación por segundo
+_ANIM_FRAMES = 6  # debe coincidir con el número de columnas del strip
+
 
 class Enemy(Entity):
     def __init__(
@@ -56,6 +59,8 @@ class Enemy(Entity):
         self.reappear_point = (x, y)
 
         self._attack_cooldown = 0.0
+        self._anim_timer = 0.0
+        self._anim_frame = 0
 
     @property
     def rect(self) -> pygame.Rect:
@@ -76,6 +81,11 @@ class Enemy(Entity):
 
         self._patrol(dt)
         self._attack_cooldown = max(0.0, self._attack_cooldown - dt)
+
+        self._anim_timer += dt
+        if self._anim_timer >= 1.0 / _ANIM_FPS:
+            self._anim_timer -= 1.0 / _ANIM_FPS
+            self._anim_frame = (self._anim_frame + 1) % _ANIM_FRAMES
 
     def _patrol(self, dt: float) -> None:
         self.x += self.speed * self.direction * dt
@@ -110,7 +120,7 @@ class Enemy(Entity):
             rect = camera.apply(self.rect)
             # facing_right no existe en Enemy hoy; se usa direction (1 = derecha)
             # como aproximacion para el flip horizontal del sprite.
-            frame = assets.get_player_frame(key, 0, (rect.width, rect.height), flip_x=self.direction < 0)
+            frame = assets.get_player_frame(key, self._anim_frame, (rect.width, rect.height), flip_x=self.direction < 0)
             surface.blit(frame, rect)
         else:
             color = settings.COLOR_ENEMY_MUTANT if self.is_mutant else settings.COLOR_ENEMY_ROBOT
