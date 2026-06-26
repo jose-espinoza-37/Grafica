@@ -12,6 +12,18 @@ para la gravedad/salto/coyote-time/jump-buffer, y le agrega:
   - Un ataque simple de corto alcance (mecánica de tutorial del Nivel 1).
   - Reaparecer en un checkpoint, restaurando la forma humana.
 
+COLLIDER vs SPRITE
+  El sprite visual es PLAYER_WIDTH×PLAYER_HEIGHT (28×40 px).
+  El collider de física (self.rect) es COLLIDER_W×COLLIDER_H (20×32 px),
+  centrado horizontalmente y alineado a los pies del sprite.
+  Esto permite que el personaje "encaje" por debajo de plataformas bajas
+  que visualmente deberían ser pasables.
+
+  Para convertir entre ambos espacios:
+    sprite_x = self.x - COLLIDER_OX
+    sprite_y = self.y - COLLIDER_OY
+  (self.x / self.y son la esquina superior-izquierda del COLLIDER)
+
 NOTA sobre cinemáticas con auto-walk: este archivo NO necesita ningún
 código especial para eso. Si Persona 3 activa un input scripteado en el
 InputManager (game.input.set_scripted_input(...)), Player simplemente lo
@@ -50,28 +62,49 @@ _SPRITE_KEY = {
     STAGE_POLLO_COMPLETO: 'player_pollo',
 }
 
+# ── Collider reducido ─────────────────────────────────────────────────────
+# El sprite visual sigue siendo settings.PLAYER_WIDTH × settings.PLAYER_HEIGHT
+# (28×40), pero el rect de física es más pequeño para que el personaje
+# pueda pasar por debajo de plataformas bajas que visualmente lo permiten.
+COLLIDER_W  = 20   # px  (sprite: 28)
+COLLIDER_H  = 32   # px  (sprite: 40)
+COLLIDER_OX = (settings.PLAYER_WIDTH  - COLLIDER_W)  // 2   # = 4
+COLLIDER_OY = (settings.PLAYER_HEIGHT - COLLIDER_H)          # = 8  (alinear pies)
+
 
 class Player(PhysicsBody, Entity):
     def __init__(self, x: float, y: float) -> None:
-        PhysicsBody.__init__(self, x, y, settings.PLAYER_WIDTH, settings.PLAYER_HEIGHT)
+        # PhysicsBody usa el tamaño del COLLIDER, no del sprite
+        PhysicsBody.__init__(self, x, y, COLLIDER_W, COLLIDER_H)
         Entity.__init__(self)
 
         self.powerups = PowerUpManager()
         self.stage = STAGE_HUMANO
         self.defeated = False
 
-        self._air_jump_used = False        # si ya usó el salto extra de Pluma Cósmica en este aire
-        self._invulnerable_timer = 0.0      # evita golpes repetidos del mismo enemigo en el mismo frame
-        self._attack_timer = 0.0            # cuánto le queda activo al hitbox de ataque
+        self._air_jump_used = False
+        self._invulnerable_timer = 0.0
+        self._attack_timer = 0.0
         self._attack_cooldown = 0.0
 
         self._anim_timer = 0.0
         self._anim_frame = 0
 
     # ------------------------------------------------------------------
-    # Update principal: llamar una vez por frame desde PlayScene.
-    # gravity_scale sirve para las zonas de gravedad alterada del Nivel 2
-    # (1.0 = normal, valores distintos los da GravityZone).
+    # Rect del SPRITE (visual), más grande que el collider.
+    # Usado solo en draw(); la física siempre opera con self.rect.
+    # ------------------------------------------------------------------
+    @property
+    def sprite_rect(self) -> pygame.Rect:
+        return pygame.Rect(
+            self.x - COLLIDER_OX,
+            self.y - COLLIDER_OY,
+            settings.PLAYER_WIDTH,
+            settings.PLAYER_HEIGHT,
+        )
+
+    # ------------------------------------------------------------------
+    # Update principal
     # ------------------------------------------------------------------
     def update(
         self,
@@ -81,7 +114,7 @@ class Player(PhysicsBody, Entity):
         gravity_scale: float = 1.0,
     ) -> None:
         if self.defeated:
-            return  # a la espera de que la escena llame a respawn_at(...)
+            return
 
         self._handle_movement_input(input_manager)
         self._handle_jump_input(input_manager)
@@ -95,9 +128,9 @@ class Player(PhysicsBody, Entity):
             self._air_jump_used = False
 
         self.powerups.update(dt)
-        self._invulnerable_timer = max(0.0, self._invulnerable_timer - dt)
-        self._attack_timer = max(0.0, self._attack_timer - dt)
-        self._attack_cooldown = max(0.0, self._attack_cooldown - dt)
+        self._invulnerable_timer  = max(0.0, self._invulnerable_timer  - dt)
+        self._attack_timer        = max(0.0, self._attack_timer        - dt)
+        self._attack_cooldown     = max(0.0, self._attack_cooldown     - dt)
         self._update_animation(dt)
 
     # ------------------------------------------------------------------
@@ -115,42 +148,35 @@ class Player(PhysicsBody, Entity):
     def _handle_jump_input(self, input_manager) -> None:
         if not input_manager.is_just_pressed("jump"):
             return
-
         if self.on_ground or self._can_coyote_jump():
             self.request_jump()
             self._air_jump_used = False
         elif self.powerups.double_jump_available and not self._air_jump_used:
-            # Salto extra de Pluma Cósmica: no consume el power-up, solo se
-            # puede usar una vez por cada vez que está en el aire.
             self.vy = settings.JUMP_VELOCITY
             self._air_jump_used = True
         else:
-            # Ni suelo, ni coyote time, ni salto extra disponible:
-            # se guarda el intento en el jump buffer por si aterriza enseguida.
             self.request_jump()
 
     def _handle_attack_input(self, input_manager) -> None:
         if input_manager.is_just_pressed("attack") and self._attack_cooldown <= 0:
-            self._attack_timer = settings.PLAYER_ATTACK_DURATION
+            self._attack_timer    = settings.PLAYER_ATTACK_DURATION
             self._attack_cooldown = settings.PLAYER_ATTACK_COOLDOWN
 
     # ------------------------------------------------------------------
-    # Física auxiliar (gravedad con escala, para las zonas del Nivel 2)
+    # Física auxiliar
     # ------------------------------------------------------------------
     def _apply_gravity_scaled(self, dt: float, gravity_scale: float) -> None:
         self.vy += settings.GRAVITY * gravity_scale * dt
         self.vy = max(-settings.MAX_FALL_SPEED, min(self.vy, settings.MAX_FALL_SPEED))
 
     # ------------------------------------------------------------------
-    # Ataque (mecánica de tutorial del Nivel 1)
+    # Ataque
     # ------------------------------------------------------------------
     @property
     def attack_rect(self) -> pygame.Rect | None:
-        """Devuelve el hitbox de ataque activo, o None si no está atacando.
-        PlayScene lo compara contra enemy.rect para aplicar daño."""
         if self._attack_timer <= 0:
             return None
-        rect = self.rect
+        rect  = self.rect
         width = settings.PLAYER_ATTACK_RANGE
         x = rect.right if self.facing_right else rect.left - width
         return pygame.Rect(x, rect.y, width, rect.height)
@@ -159,17 +185,10 @@ class Player(PhysicsBody, Entity):
     # Vida / transformación
     # ------------------------------------------------------------------
     def take_hit(self, source_is_mutant: bool = True) -> bool:
-        """
-        Llamar cuando un enemigo golpea al jugador. Devuelve True si el
-        golpe se aplicó de verdad (para que quien llama reproduzca sonido,
-        sacuda la cámara, etc.), o False si no pasó nada (invulnerable o
-        protegido por el disfraz).
-        """
         if self.defeated or self._invulnerable_timer > 0:
             return False
-
         if source_is_mutant and self.powerups.disguise_active:
-            return False  # el disfraz de "Yo También Digo Pío" lo protege
+            return False
 
         self.stage = min(self.stage + 1, STAGE_POLLO_COMPLETO)
         self.powerups.clear_all()
@@ -182,7 +201,6 @@ class Player(PhysicsBody, Entity):
         return True
 
     def respawn_at(self, point: tuple[float, float]) -> None:
-        """Llamar desde la escena cuando defeated=True, usando el último checkpoint."""
         self.x, self.y = float(point[0]), float(point[1])
         self.vx = 0.0
         self.vy = 0.0
@@ -193,8 +211,6 @@ class Player(PhysicsBody, Entity):
         self._reset_anim()
 
     def heal_full(self) -> None:
-        """Llamar al beber un frasco al final de nivel: revierte cualquier
-        transformación y lo deja completamente humano para el siguiente nivel."""
         self.stage = STAGE_HUMANO
         self.defeated = False
 
@@ -218,19 +234,30 @@ class Player(PhysicsBody, Entity):
         self._anim_timer = 0.0
 
     # ------------------------------------------------------------------
-    # Dibujo
+    # Dibujo — usa sprite_rect (28×40) aunque la física usa rect (20×32)
     # ------------------------------------------------------------------
     def draw(self, surface: pygame.Surface, camera, assets=None) -> None:
-        rect = camera.apply(self.rect)
+        draw_rect = camera.apply(self.sprite_rect)
 
         if assets is not None:
-            key = _SPRITE_KEY.get(self.stage, 'player_human')
-            frame = assets.get_player_frame(key, self._anim_frame, (rect.width, rect.height), flip_x=not self.facing_right)
-            surface.blit(frame, rect)
+            key   = _SPRITE_KEY.get(self.stage, 'player_human')
+            frame = assets.get_player_frame(
+                key, self._anim_frame,
+                (draw_rect.width, draw_rect.height),
+                flip_x=not self.facing_right,
+            )
+            surface.blit(frame, draw_rect)
         else:
-            color = settings.COLOR_PLAYER_HUMAN if self.stage == STAGE_HUMANO else settings.COLOR_PLAYER_TRANSFORMED
-            self.draw_placeholder(surface, camera, self.rect, color)
+            color = (
+                settings.COLOR_PLAYER_HUMAN
+                if self.stage == STAGE_HUMANO
+                else settings.COLOR_PLAYER_TRANSFORMED
+            )
+            self.draw_placeholder(surface, camera, self.sprite_rect, color)
 
         attack_rect = self.attack_rect
         if attack_rect is not None:
-            pygame.draw.rect(surface, settings.COLOR_WHITE, camera.apply(attack_rect), width=1)
+            pygame.draw.rect(
+                surface, settings.COLOR_WHITE,
+                camera.apply(attack_rect), width=1,
+            )

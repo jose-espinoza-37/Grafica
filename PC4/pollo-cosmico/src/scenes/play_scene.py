@@ -12,16 +12,13 @@ se encarga de:
     plataformas cíclicas e ítems de power-up.
   - Resolver el contacto jugador-enemigo en ambos sentidos (el enemigo
     lo golpea a él, su ataque los golpea a ellos).
-  - Reaparecer al jugador en el checkpoint cuando es derrotado.
+  - Reaparecer al jugador en el checkpoint cuando es derrotado O cuando
+    cae al vacío (player.y > level_height + FALL_DEATH_MARGIN).
   - Detectar la meta del nivel: si el nivel tiene peligro, dispara la
     cutscene del frasco antes de continuar; si no (Nivel 4), continúa
     directo a lo que siga.
   - Pausa (acción "pause" -> apila PauseScene encima).
-  - Auto-walk al entrar al nivel (intro_autowalk_seconds): el InputManager
-    queda en modo scripteado caminando a la derecha por ese tiempo, y
-    luego se le devuelve el control al jugador. Así se logra el efecto
-    "el personaje camina solo y después controlas tú" sin necesitar
-    ningún sistema de animación nuevo (ver cinematic_scene.py).
+  - Auto-walk al entrar al nivel (intro_autowalk_seconds).
 """
 
 from __future__ import annotations
@@ -33,6 +30,11 @@ from src.core import settings
 from src.systems.camera import Camera
 from src.entities.gravity_zone import get_gravity_scale
 from src.ui.hud import HUD
+
+# Cuántos píxeles por DEBAJO del límite inferior del mundo se considera
+# "caída al vacío".  Un valor pequeño (32-64) es más responsivo;
+# uno mayor da margen si hay tiles al fondo que se ven pero no se tocan.
+FALL_DEATH_MARGIN = 64
 
 
 @dataclass
@@ -50,45 +52,20 @@ class LevelConfig:
     powerup_items: list = field(default_factory=list)
     goal_rect: pygame.Rect | None = None
 
-    has_danger: bool = True             # False = Nivel 4 (solo caminar, sin frasco al final)
-    show_frasco_dialogue: bool = False  # True solo en Nivel 1
+    has_danger: bool = True
+    show_frasco_dialogue: bool = False
     intro_autowalk_seconds: float = 0.0
     music_path: str | None = None
-    show_hud: bool = True               # False para el tramo de caminata calma del Nivel 4
+    show_hud: bool = True
 
-    # Imagen de fondo del nivel (assets/backgrounds/nivelN.png). Se dibuja
-    # estirada a pantalla completa, detrás de todo lo demás (tiles, enemigos,
-    # jugador). Si es None, se usa el color plano settings.COLOR_BG de siempre.
     background_path: str | None = None
-
-    # Nivel 3 (Bosque -> Playa): segundo fondo que reemplaza a background_path
-    # apenas el jugador activa el checkpoint, siguiendo el lore (la transición
-    # bosque/playa ocurre justo ahí). None en los niveles que no la necesitan.
     background_path_after_checkpoint: str | None = None
-
-    # Igual que arriba pero para la música: si se define, reemplaza a
-    # music_path en el mismo instante en que se activa el checkpoint (Nivel 3:
-    # pista de bosque -> pista de playa). None en los niveles que no la necesitan.
     music_path_after_checkpoint: str | None = None
-
-    # Si el nivel viene de un mapa de Tiled (ver systems/tilemap_loader.py),
-    # aquí va el TilemapRenderer ya armado. Si es None, PlayScene sigue
-    # dibujando los rectángulos de depuración de siempre (compatibilidad
-    # con niveles armados a mano, como los de intro_flow.py).
     tilemap_renderer: object | None = None
 
 
 class PlayScene(Scene):
     def __init__(self, game, player, config: LevelConfig, on_level_complete=None, level_factory=None) -> None:
-        """
-        level_factory: función sin argumentos que devuelve un LevelConfig
-        nuevo (ej. _build_nivel1_config en intro_flow.py). Si se la pasa,
-        PauseScene puede ofrecer "Reiniciar nivel" con un estado 100%
-        limpio (enemigos vivos otra vez, ítems sin recoger, checkpoint
-        desactivado). Si no se pasa, "Reiniciar nivel" solo manda al
-        jugador de vuelta al punto de partida, sin resetear enemigos/ítems
-        ya tocados - sigue siendo útil, solo menos completo.
-        """
         self.game = game
         self.player = player
         self.config = config
@@ -103,11 +80,9 @@ class PlayScene(Scene):
             level_height=config.level_height,
         )
 
-        self._intro_timer = config.intro_autowalk_seconds
+        self._intro_timer = 0
         self._completed = False
 
-        # Fondo activo: arranca con background_path; cambia una sola vez a
-        # background_path_after_checkpoint cuando el checkpoint se activa.
         self._current_bg_path = config.background_path
         self._bg_cache: dict[str, pygame.Surface] = {}
 
@@ -116,12 +91,6 @@ class PlayScene(Scene):
         self.player.heal_full()
         self.camera.x, self.camera.y = 0.0, 0.0
 
-        # La musica del nivel ya empieza a sonar desde la cinematica que lo
-        # introduce (ver intro_flow.py), asi que aqui ya no hace falta
-        # relanzarla -- AudioManager.play_music ademas ignora la llamada si
-        # ya esta sonando la misma pista, asi que tampoco habria roto nada
-        # dejarla, pero es codigo redundante que se quita por limpieza.
-
         if self._intro_timer > 0:
             self.game.input.set_scripted_input({"right": True})
 
@@ -129,11 +98,9 @@ class PlayScene(Scene):
         self.game.input.clear_scripted_input()
 
     def restart_level(self) -> None:
-        """Llamado desde PauseScene ('Reiniciar nivel'). Ver nota de
-        level_factory arriba sobre qué tan completo es el reinicio."""
         if self.level_factory is not None:
             self.config = self.level_factory()
-            self.camera.level_width = self.config.level_width
+            self.camera.level_width  = self.config.level_width
             self.camera.level_height = self.config.level_height
 
         self._current_bg_path = self.config.background_path
@@ -172,6 +139,12 @@ class PlayScene(Scene):
         solids = self._current_solids()
         gravity_scale = get_gravity_scale(self.player.rect, self.config.gravity_zones)
         self.player.update(dt, self.game.input, solids, gravity_scale=gravity_scale)
+
+        # ── Muerte por caída al vacío ─────────────────────────────────
+        # Si el jugador cae más allá del límite inferior del mundo
+        # se trata igual que una derrota por combate: respawn en checkpoint.
+        if self.player.y > self.config.level_height + FALL_DEATH_MARGIN:
+            self._respawn_player()
 
         for platform in self.config.cyclic_platforms:
             platform.update(dt)
@@ -233,8 +206,6 @@ class PlayScene(Scene):
         self.player.respawn_at(respawn_point)
 
     def _draw_background(self, surface: pygame.Surface) -> None:
-        """Dibuja la imagen de fondo del nivel, estirada a pantalla completa.
-        Se cachea por ruta para no reescalar la imagen cada frame."""
         path = self._current_bg_path
         if not path:
             return
@@ -243,7 +214,7 @@ class PlayScene(Scene):
         bg = self._bg_cache.get(cache_key)
         if bg is None:
             raw = self.game.assets.get_image(path)
-            bg = pygame.transform.scale(raw, size)
+            bg  = pygame.transform.scale(raw, size)
             self._bg_cache[cache_key] = bg
         surface.blit(bg, (0, 0))
 
