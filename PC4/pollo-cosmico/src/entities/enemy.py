@@ -3,16 +3,21 @@ enemy.py
 ---------
 Enemigo simple para todos los niveles con peligro:
 
-  - Nivel 1: robots de seguridad. is_mutant=False.
-  - Nivel 2 y Nivel 3: mutantes con pico de gallina. is_mutant=True.
+  - Nivel 1: robots de seguridad. is_mutant=False (sin pico, el disfraz no
+    aplica contra ellos, pero tampoco está disponible en ese nivel).
+  - Nivel 2 y Nivel 3: mutantes con pico de gallina. is_mutant=True, así
+    el power-up "Yo También Digo Pío" tiene sentido contra ellos.
 
-Patrulla en línea recta entre patrol_min_x y patrol_max_x. Ataca por
-contacto simple con el jugador, con cooldown para no golpearlo cada frame.
+Patrulla en línea recta entre patrol_min_x y patrol_max_x (se asume que
+ya está parado sobre una plataforma puesta por el diseño de nivel - no
+tiene gravedad propia, para mantenerlo simple). Ataca por contacto simple
+con el jugador, con cooldown para no golpearlo todos los frames.
 
 reappear_cycle es opcional: si se le pasa un CyclicTimer, el enemigo se
-"apaga" (no patrulla, no ataca, no se dibuja) y reaparece en
-reappear_point cuando el ciclo lo indique — efecto de distorsión temporal
-del Nivel 3 (playa).
+"apaga" (no patrulla, no ataca, no se dibuja) y vuelve a aparecer en
+reappear_point cuando el ciclo lo indique - usado en la mitad de playa
+del Nivel 3 para simular el efecto de distorsión temporal sin teletransporte
+real ni duplicación.
 """
 
 from __future__ import annotations
@@ -21,8 +26,6 @@ import pygame
 from src.core import settings
 from src.entities.entity_base import Entity
 from src.entities.cyclic_timer import CyclicTimer
-
-_ANIM_FPS = 8.0   # frames de animación por segundo
 
 
 class Enemy(Entity):
@@ -53,8 +56,6 @@ class Enemy(Entity):
         self.reappear_point = (x, y)
 
         self._attack_cooldown = 0.0
-        self._anim_timer = 0.0
-        self._anim_frame = 0
 
     @property
     def rect(self) -> pygame.Rect:
@@ -62,6 +63,7 @@ class Enemy(Entity):
 
     @property
     def active(self) -> bool:
+        """Falso mientras está en su fase 'invisible' del ciclo (si tiene uno)."""
         return self.reappear_cycle.visible if self.reappear_cycle else True
 
     def update(self, dt: float) -> None:
@@ -70,18 +72,10 @@ class Enemy(Entity):
             if changed and self.reappear_cycle.visible:
                 self.x, self.y = self.reappear_point
             if not self.reappear_cycle.visible:
-                return
+                return  # invisible: no patrulla, no ataca, no se dibuja
 
         self._patrol(dt)
         self._attack_cooldown = max(0.0, self._attack_cooldown - dt)
-
-        # Animación: solo cuando se mueve
-        self._anim_timer += dt
-        interval = 1.0 / _ANIM_FPS
-        if self._anim_timer >= interval:
-            self._anim_timer -= interval
-            n_frames = 6
-            self._anim_frame = (self._anim_frame + 1) % n_frames
 
     def _patrol(self, dt: float) -> None:
         self.x += self.speed * self.direction * dt
@@ -93,6 +87,10 @@ class Enemy(Entity):
             self.direction = -1
 
     def try_attack(self, player) -> bool:
+        """
+        Llamar desde PlayScene cuando enemy.rect colisiona con player.rect.
+        Devuelve True si el golpe se aplicó (para feedback de Persona 3).
+        """
         if not self.active or self._attack_cooldown > 0:
             return False
         applied = player.take_hit(source_is_mutant=self.is_mutant)
@@ -101,16 +99,18 @@ class Enemy(Entity):
         return applied
 
     def take_damage(self) -> None:
+        """Llamar cuando el ataque del jugador lo golpea. Un golpe basta (jam-friendly)."""
         self.alive = False
 
     def draw(self, surface: pygame.Surface, camera, assets=None) -> None:
         if not self.active:
             return
-        rect = camera.apply(self.rect)
         if assets is not None:
-            key = 'mutante' if self.is_mutant else 'robot'
-            flip_x = self.direction == -1
-            frame = assets.get_player_frame(key, self._anim_frame, (rect.width, rect.height), flip_x=flip_x)
+            key = 'enemy_mutante' if self.is_mutant else 'enemy_robot'
+            rect = camera.apply(self.rect)
+            # facing_right no existe en Enemy hoy; se usa direction (1 = derecha)
+            # como aproximacion para el flip horizontal del sprite.
+            frame = assets.get_player_frame(key, 0, (rect.width, rect.height), flip_x=self.direction < 0)
             surface.blit(frame, rect)
         else:
             color = settings.COLOR_ENEMY_MUTANT if self.is_mutant else settings.COLOR_ENEMY_ROBOT

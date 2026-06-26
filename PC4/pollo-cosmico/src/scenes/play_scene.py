@@ -56,15 +56,20 @@ class LevelConfig:
     music_path: str | None = None
     show_hud: bool = True               # False para el tramo de caminata calma del Nivel 4
 
-    # Imagen de fondo del nivel (paisaje lejano). Si es None se usa el color plano.
-    # background_parallax: 1.0 = se mueve igual que el mundo; 0.0 = fijo;
-    # 0.3-0.5 = parallax (se mueve más lento, da sensación de profundidad).
+    # Imagen de fondo del nivel (assets/backgrounds/nivelN.png). Se dibuja
+    # estirada a pantalla completa, detrás de todo lo demás (tiles, enemigos,
+    # jugador). Si es None, se usa el color plano settings.COLOR_BG de siempre.
     background_path: str | None = None
-    background_parallax: float = 0.5
-    # Segundo fondo opcional (ej. Nivel 3: bosque -> playa). Cuando el jugador
-    # pasa background_switch_x (en coords del mundo), se usa este en lugar del primero.
-    background_path_2: str | None = None
-    background_switch_x: float = 0.0
+
+    # Nivel 3 (Bosque -> Playa): segundo fondo que reemplaza a background_path
+    # apenas el jugador activa el checkpoint, siguiendo el lore (la transición
+    # bosque/playa ocurre justo ahí). None en los niveles que no la necesitan.
+    background_path_after_checkpoint: str | None = None
+
+    # Igual que arriba pero para la música: si se define, reemplaza a
+    # music_path en el mismo instante en que se activa el checkpoint (Nivel 3:
+    # pista de bosque -> pista de playa). None en los niveles que no la necesitan.
+    music_path_after_checkpoint: str | None = None
 
     # Si el nivel viene de un mapa de Tiled (ver systems/tilemap_loader.py),
     # aquí va el TilemapRenderer ya armado. Si es None, PlayScene sigue
@@ -74,12 +79,21 @@ class LevelConfig:
 
 
 class PlayScene(Scene):
-    def __init__(self, game, player, config: LevelConfig, on_level_complete=None, on_restart=None) -> None:
+    def __init__(self, game, player, config: LevelConfig, on_level_complete=None, level_factory=None) -> None:
+        """
+        level_factory: función sin argumentos que devuelve un LevelConfig
+        nuevo (ej. _build_nivel1_config en intro_flow.py). Si se la pasa,
+        PauseScene puede ofrecer "Reiniciar nivel" con un estado 100%
+        limpio (enemigos vivos otra vez, ítems sin recoger, checkpoint
+        desactivado). Si no se pasa, "Reiniciar nivel" solo manda al
+        jugador de vuelta al punto de partida, sin resetear enemigos/ítems
+        ya tocados - sigue siendo útil, solo menos completo.
+        """
         self.game = game
         self.player = player
         self.config = config
         self.on_level_complete = on_level_complete
-        self.on_restart = on_restart
+        self.level_factory = level_factory
         self.hud = HUD()
 
         self.camera = Camera(
@@ -91,6 +105,11 @@ class PlayScene(Scene):
 
         self._intro_timer = config.intro_autowalk_seconds
         self._completed = False
+
+        # Fondo activo: arranca con background_path; cambia una sola vez a
+        # background_path_after_checkpoint cuando el checkpoint se activa.
+        self._current_bg_path = config.background_path
+        self._bg_cache: dict[str, pygame.Surface] = {}
 
     def on_enter(self) -> None:
         self.player.x, self.player.y = self.config.start_pos
@@ -106,6 +125,26 @@ class PlayScene(Scene):
     def on_exit(self) -> None:
         self.game.input.clear_scripted_input()
 
+    def restart_level(self) -> None:
+        """Llamado desde PauseScene ('Reiniciar nivel'). Ver nota de
+        level_factory arriba sobre qué tan completo es el reinicio."""
+        if self.level_factory is not None:
+            self.config = self.level_factory()
+            self.camera.level_width = self.config.level_width
+            self.camera.level_height = self.config.level_height
+
+        self._current_bg_path = self.config.background_path
+        self.player.x, self.player.y = self.config.start_pos
+        self.player.heal_full()
+        self.camera.x, self.camera.y = 0.0, 0.0
+        self._completed = False
+        self._intro_timer = self.config.intro_autowalk_seconds
+
+        if self._intro_timer > 0:
+            self.game.input.set_scripted_input({"right": True})
+        else:
+            self.game.input.clear_scripted_input()
+
     def handle_event(self, event: pygame.event.Event) -> None:
         pass
 
@@ -119,8 +158,9 @@ class PlayScene(Scene):
                 self.game.input.clear_scripted_input()
 
         if self.game.input.is_just_pressed("pause"):
+            self.game.audio.play_sfx(settings.SFX_PAUSE)
             from src.scenes.pause_scene import PauseScene
-            self.game.states.push(PauseScene(self.game))
+            self.game.states.push(PauseScene(self.game, self))
             return
 
         self._update_gameplay(dt)
@@ -134,20 +174,30 @@ class PlayScene(Scene):
             platform.update(dt)
 
         for pad in self.config.boost_pads:
-            pad.try_boost(self.player)
+            if pad.try_boost(self.player):
+                self.game.audio.play_sfx(settings.SFX_BOOST)
 
         for item in self.config.powerup_items:
-            item.update(dt)
-            item.try_collect(self.player)
+            if item.try_collect(self.player):
+                if item.kind == item.KIND_DOUBLE_JUMP:
+                    self.game.audio.play_sfx(settings.SFX_POWERUP_PLUMA)
+                elif item.kind == item.KIND_DISGUISE:
+                    self.game.audio.play_sfx(settings.SFX_POWERUP_PIO)
 
         if self.config.has_danger:
             self._update_enemies(dt)
 
         if self.config.checkpoint is not None:
-            self.config.checkpoint.update(dt, self.player.rect)
+            just_activated = self.config.checkpoint.update(dt, self.player.rect)
+            if just_activated:
+                self.game.audio.play_sfx(settings.SFX_CHECKPOINT)
+                if self.config.background_path_after_checkpoint:
+                    self._current_bg_path = self.config.background_path_after_checkpoint
+                if self.config.music_path_after_checkpoint:
+                    self.game.audio.play_music(self.config.music_path_after_checkpoint)
 
         if self.player.defeated:
-            self._show_defeated()
+            self._respawn_player()
 
         self.camera.update(dt, self.player.rect)
 
@@ -158,41 +208,19 @@ class PlayScene(Scene):
         for enemy in self.config.enemies:
             enemy.update(dt)
             if enemy.alive and enemy.active and enemy.rect.colliderect(self.player.rect):
-                enemy.try_attack(self.player)
+                if enemy.try_attack(self.player):
+                    self.game.audio.play_sfx(settings.SFX_HIT_PLAYER)
 
         attack_rect = self.player.attack_rect
         if attack_rect is not None:
             for enemy in self.config.enemies:
                 if enemy.alive and enemy.active and attack_rect.colliderect(enemy.rect):
                     enemy.take_damage()
+                    self.game.audio.play_sfx(settings.SFX_HIT_ENEMY)
+                    if not enemy.alive:
+                        self.game.audio.play_sfx(settings.SFX_ENEMY_DEFEATED)
 
         self.config.enemies = [e for e in self.config.enemies if e.alive]
-
-    def _show_defeated(self) -> None:
-        from src.scenes.defeated_scene import DefeatedScene
-        has_cp = (
-            self.config.checkpoint is not None
-            and self.config.checkpoint.activated
-        )
-
-        def do_restart():
-            if self.on_restart:
-                self.on_restart()
-            else:
-                self.player.respawn_at(self.config.start_pos)
-                self.game.states.switch_to(self)
-
-        def do_checkpoint():
-            self._respawn_player()
-            self.game.states.pop()
-
-        self.game.states.push(DefeatedScene(
-            self.game,
-            self.player,
-            on_restart=do_restart,
-            on_checkpoint=do_checkpoint,
-            checkpoint_available=has_cp,
-        ))
 
     def _respawn_player(self) -> None:
         if self.config.checkpoint is not None and self.config.checkpoint.activated:
@@ -200,6 +228,21 @@ class PlayScene(Scene):
         else:
             respawn_point = self.config.start_pos
         self.player.respawn_at(respawn_point)
+
+    def _draw_background(self, surface: pygame.Surface) -> None:
+        """Dibuja la imagen de fondo del nivel, estirada a pantalla completa.
+        Se cachea por ruta para no reescalar la imagen cada frame."""
+        path = self._current_bg_path
+        if not path:
+            return
+        size = surface.get_size()
+        cache_key = f"{path}@{size}"
+        bg = self._bg_cache.get(cache_key)
+        if bg is None:
+            raw = self.game.assets.get_image(path)
+            bg = pygame.transform.scale(raw, size)
+            self._bg_cache[cache_key] = bg
+        surface.blit(bg, (0, 0))
 
     def _current_solids(self) -> list[pygame.Rect]:
         solids = list(self.config.solids)
@@ -214,6 +257,7 @@ class PlayScene(Scene):
 
         if self.config.has_danger:
             from src.scenes.cinematic_scene import CinematicScene, build_frasco_beat
+            self.game.audio.play_sfx(settings.SFX_FRASCO)
             self.player.heal_full()
             beat = build_frasco_beat(self.config.show_frasco_dialogue)
 
@@ -225,26 +269,6 @@ class PlayScene(Scene):
         else:
             if self.on_level_complete:
                 self.on_level_complete()
-
-    def _draw_background(self, surface: pygame.Surface) -> None:
-        """Dibuja la imagen de fondo del nivel con parallax (si hay)."""
-        path = self.config.background_path
-        if (self.config.background_path_2
-                and self.player.x >= self.config.background_switch_x):
-            path = self.config.background_path_2
-        if not path:
-            return
-        sw, sh = surface.get_width(), surface.get_height()
-        original = self.game.assets.get_image(path)
-        # Escalar al alto del lienzo conservando proporción (las imágenes ya
-        # vienen anchas, recortadas arriba, así que sobra ancho para el parallax).
-        scale = sh / original.get_height()
-        bw = max(sw, int(original.get_width() * scale))
-        bg = self.game.assets.get_image(path, size=(bw, sh))
-        # Offset con parallax, recortado para no salirse de la imagen (sin huecos).
-        off = self.camera.x * self.config.background_parallax
-        off = int(max(0, min(off, bw - sw)))
-        surface.blit(bg, (-off, 0))
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill(settings.COLOR_BG)

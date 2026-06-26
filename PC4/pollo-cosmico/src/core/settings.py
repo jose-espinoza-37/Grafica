@@ -69,9 +69,34 @@ AUDIO_DIR = f"{ASSETS_DIR}/audio"
 CINEMATICS_DIR = f"{ASSETS_DIR}/cinematics"
 LEVELS_DIR = f"{ASSETS_DIR}/levels"
 FONTS_DIR = f"{ASSETS_DIR}/fonts"
+BACKGROUNDS_DIR = f"{ASSETS_DIR}/backgrounds"
 
 # --- Tilemaps (niveles diseñados en Tiled, ver systems/tilemap_loader.py) ---
 TILE_SIZE = 16   # tamaño en píxeles de cada tile; usar el mismo en todos los niveles de Tiled
+
+# --- Audio: rutas de sfx y musica ---
+# Centralizadas aqui para que nadie escriba "assets/audio/sfx/jump.wav" a
+# mano en otro archivo. AudioManager/AssetManager ya manejan el caso de que
+# el archivo no exista todavia (no truena, simplemente no suena).
+SFX_DIR = f"{AUDIO_DIR}/sfx"
+MUSIC_DIR = f"{AUDIO_DIR}/music"
+
+SFX_JUMP = f"{SFX_DIR}/jump.wav"
+SFX_HIT_PLAYER = f"{SFX_DIR}/hit_player.wav"
+SFX_HIT_ENEMY = f"{SFX_DIR}/hit_enemy.wav"
+SFX_ENEMY_DEFEATED = f"{SFX_DIR}/enemy_defeated.wav"
+SFX_POWERUP_PLUMA = f"{SFX_DIR}/powerup_pluma.wav"
+SFX_POWERUP_PIO = f"{SFX_DIR}/powerup_pio.wav"
+SFX_CHECKPOINT = f"{SFX_DIR}/checkpoint.wav"
+SFX_FRASCO = f"{SFX_DIR}/frasco.wav"
+SFX_PAUSE = f"{SFX_DIR}/pause.wav"
+SFX_BOOST = f"{SFX_DIR}/boost.wav"
+
+MUSIC_MENU = f"{MUSIC_DIR}/menu.ogg"
+MUSIC_LEVEL_1 = f"{MUSIC_DIR}/nivel1.ogg"
+MUSIC_LEVEL_2 = f"{MUSIC_DIR}/nivel2.ogg"
+MUSIC_LEVEL_3 = f"{MUSIC_DIR}/nivel3.ogg"
+MUSIC_LEVEL_4 = f"{MUSIC_DIR}/isla_calma.ogg"
 
 # ======================================================================
 # A partir de aquí: constantes agregadas por Persona 2 (Player, enemigos,

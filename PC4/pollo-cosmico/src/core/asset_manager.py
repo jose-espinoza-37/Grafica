@@ -10,24 +10,38 @@ nunca con pygame.image.load directamente en sus propios archivos.
 import os
 import pygame
 
-# Sprite sheets del jugador: key -> (ruta, columnas, filas)
-# La fila 0 es la animación de caminar (la única que se usa actualmente).
-# chiken.png está en 4×2 hasta que se regenere como 4×3.
-_PLAYER_SHEETS: dict[str, tuple[str, int, int]] = {
-    # Jugador
-    'player_human':  ('assets/sprites/player/humano/humano_strip.png',              7, 1),
-    'player_patas':  ('assets/sprites/player/patas_pollo/patas_strip.png',          7, 1),
-    'player_alas':   ('assets/sprites/player/alas_pollo/alas_strip.png',            7, 1),
-    'player_pollo':  ('assets/sprites/player/pollo_completo/pollo_strip.png',       4, 1),
-    # Checkpoint (frame 0=apagado, frames 1-3=pulso activo)
+# Sprite sheets de entidades: key -> (ruta, columnas, filas)
+# La fila 0 es la animación principal de cada entidad (caminar para el
+# jugador y enemigos, pulso de encendido para el checkpoint).
+#
+# NOTA sobre columnas: para 'checkpoint', 'enemy_mutante' y 'enemy_robot' se
+# asume 1 fila y el número de columnas indicado abajo - hay que CONFIRMARLO
+# contra el .png real (cuántos fotogramas tiene cada strip). Si el número de
+# columnas no coincide con el ancho real del archivo, los fotogramas se ven
+# recortados o repetidos, pero no truena el juego.
+_SPRITE_SHEETS: dict[str, tuple[str, int, int]] = {
+    'player_human': ('assets/sprites/player/humano/humano_strip.png',              7, 1),
+    'player_patas': ('assets/sprites/player/patas_pollo/patas_strip.png',          7, 1),
+    'player_alas':  ('assets/sprites/player/alas_pollo/alas_strip.png',            7, 1),
+    'player_pollo': ('assets/sprites/player/pollo_completo/pollo_strip.png',       4, 1),
+
+    # Checkpoint: frame 0 = apagado, 1-3 = ciclo de pulso (ver checkpoint.py) -> 4 columnas.
     'checkpoint':    ('assets/sprites/checkpoint/checkpoint_strip.png',             4, 1),
-    # Power-ups
+
+    # Enemigos: por ahora se asume animación de patrulla simple, 4 columnas
+    # (igual que pollo_completo). AJUSTAR si el strip real tiene otro número.
+    'enemy_mutante': ('assets/sprites/enemies/mutante/mutante_strip.png',           4, 1),
+    'enemy_robot':   ('assets/sprites/enemies/robot/robot_strip.png',               4, 1),
+
+    # Power-ups: las keys deben coincidir con _SPRITE_KEY en powerup_item.py
+    # ('pluma_cosmica' / 'disfraz_pio'), no con el nombre interno del kind.
+    # Ambos animan en loop de 4 frames (ver PowerUpItem.update) -> 4 columnas.
     'pluma_cosmica': ('assets/sprites/powerups/pluma_cosmica/pluma_strip.png',      4, 1),
     'disfraz_pio':   ('assets/sprites/powerups/disfraz_pio/disfraz_strip.png',      4, 1),
-    # Enemigos
-    'robot':         ('assets/sprites/enemies/robot/robot_strip.png',               6, 1),
-    'mutante':       ('assets/sprites/enemies/mutante/mutante_strip.png',           6, 1),
 }
+
+# Alias para no romper código existente que todavía use el nombre viejo.
+_PLAYER_SHEETS = _SPRITE_SHEETS
 
 
 def _remove_magenta_bg(surf: pygame.Surface) -> pygame.Surface:
@@ -158,9 +172,9 @@ class AssetManager:
     ) -> pygame.Surface:
         sheet_key = f"__sheet__{key}"
         if sheet_key not in self._images:
-            if key not in _PLAYER_SHEETS:
+            if key not in _SPRITE_SHEETS:
                 return self._placeholder(size)
-            path, cols, rows = _PLAYER_SHEETS[key]
+            path, cols, rows = _SPRITE_SHEETS[key]
             if not os.path.isfile(path):
                 return self._placeholder(size)
             raw = pygame.image.load(path).convert_alpha()
