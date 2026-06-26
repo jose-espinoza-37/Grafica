@@ -73,19 +73,31 @@ class DialogueBox:
         if text is None:
             return
 
-        box_height = 40
-        box_rect = pygame.Rect(6, surface.get_height() - box_height - 6, surface.get_width() - 12, box_height)
+        box_height = 100
+        box_rect = pygame.Rect(10, surface.get_height() - box_height - 12, surface.get_width() - 40, box_height)
 
-        pygame.draw.rect(surface, (15, 14, 20), box_rect)
-        pygame.draw.rect(surface, settings.COLOR_WHITE, box_rect, width=1)
+        box = pygame.Surface((box_rect.width, box_rect.height), pygame.SRCALPHA)
+        box.fill((15,14,20,210))
+        surface.blit(box, box_rect)
+        pygame.draw.rect(surface, settings.COLOR_WHITE, box_rect, 2)
 
-        font = assets.get_font(None, 11)
+        font = assets.get_font(None, 20)
         wrapped = _wrap_text(text, font, box_rect.width - 16)
 
-        for i, line in enumerate(wrapped[:3]):  # como mucho 3 líneas visibles a la vez
+        for i, line in enumerate(wrapped[:4]):  # como mucho 3 líneas visibles a la vez
+
+            x = box_rect.x + 12
+            y = box_rect.y + 10 + i * 22
+            shadow = font.render(line, False, (0,0,0))
+            surface.blit(shadow, (x+2, y+2))
             line_surface = font.render(line, False, settings.COLOR_WHITE)
-            surface.blit(line_surface, (box_rect.x + 8, box_rect.y + 6 + i * 11))
+            surface.blit(line_surface, (x, y))
+
+
+
 
         if pygame.time.get_ticks() % 1000 < 500:
-            hint = font.render("> seguir", False, (190, 190, 190))
-            surface.blit(hint, (box_rect.right - hint.get_width() - 8, box_rect.bottom - 13))
+            hint_font = assets.get_font(None, 15)
+            hint = hint_font.render("ENTER  >  Continuar", False, (200,200,200))
+            surface.blit(hint, (box_rect.right - hint.get_width() - 50, box_rect.bottom - 30))
+
