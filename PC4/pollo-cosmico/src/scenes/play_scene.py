@@ -189,7 +189,30 @@ class PlayScene(Scene):
                 return
 
         if self.player.defeated:
+            self._show_defeated_screen()
+
+    def _show_defeated_screen(self) -> None:
+        from src.scenes.defeated_scene import DefeatedScene
+        checkpoint_available = (
+            self.config.checkpoint is not None and self.config.checkpoint.activated
+        )
+
+        def on_restart():
+            self.game.states.pop()
+            self.restart_level()
+
+        def on_checkpoint():
+            self.game.states.pop()
             self._respawn_player()
+
+        self.game.states.push(
+            DefeatedScene(
+                self.game, self.player,
+                on_restart=on_restart,
+                on_checkpoint=on_checkpoint,
+                checkpoint_available=checkpoint_available,
+            )
+        )
 
     def _update_enemies(self, dt: float) -> None:
         for enemy in self.config.enemies:
