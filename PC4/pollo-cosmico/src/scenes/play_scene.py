@@ -56,6 +56,16 @@ class LevelConfig:
     music_path: str | None = None
     show_hud: bool = True               # False para el tramo de caminata calma del Nivel 4
 
+    # Imagen de fondo del nivel (paisaje lejano). Si es None se usa el color plano.
+    # background_parallax: 1.0 = se mueve igual que el mundo; 0.0 = fijo;
+    # 0.3-0.5 = parallax (se mueve más lento, da sensación de profundidad).
+    background_path: str | None = None
+    background_parallax: float = 0.5
+    # Segundo fondo opcional (ej. Nivel 3: bosque -> playa). Cuando el jugador
+    # pasa background_switch_x (en coords del mundo), se usa este en lugar del primero.
+    background_path_2: str | None = None
+    background_switch_x: float = 0.0
+
     # Si el nivel viene de un mapa de Tiled (ver systems/tilemap_loader.py),
     # aquí va el TilemapRenderer ya armado. Si es None, PlayScene sigue
     # dibujando los rectángulos de depuración de siempre (compatibilidad
@@ -64,11 +74,12 @@ class LevelConfig:
 
 
 class PlayScene(Scene):
-    def __init__(self, game, player, config: LevelConfig, on_level_complete=None) -> None:
+    def __init__(self, game, player, config: LevelConfig, on_level_complete=None, on_restart=None) -> None:
         self.game = game
         self.player = player
         self.config = config
         self.on_level_complete = on_level_complete
+        self.on_restart = on_restart
         self.hud = HUD()
 
         self.camera = Camera(
@@ -126,16 +137,17 @@ class PlayScene(Scene):
             pad.try_boost(self.player)
 
         for item in self.config.powerup_items:
+            item.update(dt)
             item.try_collect(self.player)
 
         if self.config.has_danger:
             self._update_enemies(dt)
 
         if self.config.checkpoint is not None:
-            self.config.checkpoint.check(self.player.rect)
+            self.config.checkpoint.update(dt, self.player.rect)
 
         if self.player.defeated:
-            self._respawn_player()
+            self._show_defeated()
 
         self.camera.update(dt, self.player.rect)
 
@@ -155,6 +167,32 @@ class PlayScene(Scene):
                     enemy.take_damage()
 
         self.config.enemies = [e for e in self.config.enemies if e.alive]
+
+    def _show_defeated(self) -> None:
+        from src.scenes.defeated_scene import DefeatedScene
+        has_cp = (
+            self.config.checkpoint is not None
+            and self.config.checkpoint.activated
+        )
+
+        def do_restart():
+            if self.on_restart:
+                self.on_restart()
+            else:
+                self.player.respawn_at(self.config.start_pos)
+                self.game.states.switch_to(self)
+
+        def do_checkpoint():
+            self._respawn_player()
+            self.game.states.pop()
+
+        self.game.states.push(DefeatedScene(
+            self.game,
+            self.player,
+            on_restart=do_restart,
+            on_checkpoint=do_checkpoint,
+            checkpoint_available=has_cp,
+        ))
 
     def _respawn_player(self) -> None:
         if self.config.checkpoint is not None and self.config.checkpoint.activated:
@@ -188,8 +226,29 @@ class PlayScene(Scene):
             if self.on_level_complete:
                 self.on_level_complete()
 
+    def _draw_background(self, surface: pygame.Surface) -> None:
+        """Dibuja la imagen de fondo del nivel con parallax (si hay)."""
+        path = self.config.background_path
+        if (self.config.background_path_2
+                and self.player.x >= self.config.background_switch_x):
+            path = self.config.background_path_2
+        if not path:
+            return
+        sw, sh = surface.get_width(), surface.get_height()
+        original = self.game.assets.get_image(path)
+        # Escalar al alto del lienzo conservando proporción (las imágenes ya
+        # vienen anchas, recortadas arriba, así que sobra ancho para el parallax).
+        scale = sh / original.get_height()
+        bw = max(sw, int(original.get_width() * scale))
+        bg = self.game.assets.get_image(path, size=(bw, sh))
+        # Offset con parallax, recortado para no salirse de la imagen (sin huecos).
+        off = self.camera.x * self.config.background_parallax
+        off = int(max(0, min(off, bw - sw)))
+        surface.blit(bg, (-off, 0))
+
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill(settings.COLOR_BG)
+        self._draw_background(surface)
 
         if self.config.tilemap_renderer is not None:
             self.config.tilemap_renderer.draw(surface, self.camera)
@@ -202,11 +261,11 @@ class PlayScene(Scene):
         for pad in self.config.boost_pads:
             pad.draw(surface, self.camera)
         for item in self.config.powerup_items:
-            item.draw(surface, self.camera)
+            item.draw(surface, self.camera, self.game.assets)
         if self.config.checkpoint is not None:
-            self.config.checkpoint.draw(surface, self.camera)
+            self.config.checkpoint.draw(surface, self.camera, self.game.assets)
         for enemy in self.config.enemies:
-            enemy.draw(surface, self.camera)
+            enemy.draw(surface, self.camera, self.game.assets)
 
         self.player.draw(surface, self.camera, self.game.assets)
 

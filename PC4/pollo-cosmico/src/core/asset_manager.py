@@ -14,10 +14,19 @@ import pygame
 # La fila 0 es la animación de caminar (la única que se usa actualmente).
 # chiken.png está en 4×2 hasta que se regenere como 4×3.
 _PLAYER_SHEETS: dict[str, tuple[str, int, int]] = {
-    'player_human': ('assets/sprites/player/humano/humano_strip.png',              7, 1),
-    'player_patas': ('assets/sprites/player/patas_pollo/patas_strip.png',          7, 1),
-    'player_alas':  ('assets/sprites/player/alas_pollo/alas_strip.png',            7, 1),
-    'player_pollo': ('assets/sprites/player/pollo_completo/pollo_strip.png',       4, 1),
+    # Jugador
+    'player_human':  ('assets/sprites/player/humano/humano_strip.png',              7, 1),
+    'player_patas':  ('assets/sprites/player/patas_pollo/patas_strip.png',          7, 1),
+    'player_alas':   ('assets/sprites/player/alas_pollo/alas_strip.png',            7, 1),
+    'player_pollo':  ('assets/sprites/player/pollo_completo/pollo_strip.png',       4, 1),
+    # Checkpoint (frame 0=apagado, frames 1-3=pulso activo)
+    'checkpoint':    ('assets/sprites/checkpoint/checkpoint_strip.png',             4, 1),
+    # Power-ups
+    'pluma_cosmica': ('assets/sprites/powerups/pluma_cosmica/pluma_strip.png',      4, 1),
+    'disfraz_pio':   ('assets/sprites/powerups/disfraz_pio/disfraz_strip.png',      4, 1),
+    # Enemigos
+    'robot':         ('assets/sprites/enemies/robot/robot_strip.png',               6, 1),
+    'mutante':       ('assets/sprites/enemies/mutante/mutante_strip.png',           6, 1),
 }
 
 

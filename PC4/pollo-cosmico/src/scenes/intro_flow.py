@@ -74,7 +74,7 @@ def _build_nivel1_config() -> LevelConfig:
         is_mutant=False,  # Nivel 1: robots de seguridad, no mutantes
     )
 
-    checkpoint = Checkpoint(800, 280, 32, 64)  # a mitad del recorrido (0 a 1600)
+    checkpoint = Checkpoint(800, 280, 48, 40)  # a mitad del recorrido (0 a 1600)
     double_jump_item = PowerUpItem(300, 280, PowerUpItem.KIND_DOUBLE_JUMP, width=24, height=24)
     goal_rect = pygame.Rect(1540, 220, 40, 100)
 
@@ -90,13 +90,17 @@ def _build_nivel1_config() -> LevelConfig:
         has_danger=True,
         show_frasco_dialogue=True,  # único nivel con la línea de diálogo del frasco
         music_path=f"{settings.AUDIO_DIR}/music/nivel1.ogg",
+        background_path=f"{settings.ASSETS_DIR}/backgrounds/nivel1.png",
+        background_parallax=0.5,
     )
 
 
 def _go_to_nivel1(game) -> None:
     player = Player(40, 280)
     config = _build_nivel1_config()
-    scene = PlayScene(game, player, config, on_level_complete=lambda: _on_nivel1_complete(game))
+    scene = PlayScene(game, player, config,
+                      on_level_complete=lambda: _on_nivel1_complete(game),
+                      on_restart=lambda: _go_to_nivel1(game))
     game.states.switch_to(scene)
 
 
@@ -132,7 +136,7 @@ def _build_nivel2_config() -> LevelConfig:
     mutante_2 = Enemy(1500, 280, width=32, height=40,
                       patrol_min_x=1440, patrol_max_x=1620, is_mutant=True)
 
-    checkpoint = Checkpoint(1000, 256, 32, 64)  # a mitad de 0..2000
+    checkpoint = Checkpoint(1000, 280, 48, 40)  # a mitad de 0..2000
 
     disfraz     = PowerUpItem(450, 280, PowerUpItem.KIND_DISGUISE, width=24, height=24)
     doble_salto = PowerUpItem(1150, 280, PowerUpItem.KIND_DOUBLE_JUMP, width=24, height=24)
@@ -151,7 +155,18 @@ def _build_nivel2_config() -> LevelConfig:
         goal_rect=goal_rect,
         has_danger=True,
         music_path=f"{settings.AUDIO_DIR}/music/nivel2.ogg",
+        background_path=f"{settings.ASSETS_DIR}/backgrounds/nivel2.png",
+        background_parallax=0.4,
     )
+
+
+def _start_nivel2_gameplay(game) -> None:
+    player = Player(40, 280)
+    config = _build_nivel2_config()
+    scene = PlayScene(game, player, config,
+                      on_level_complete=lambda: _go_to_nivel3(game),
+                      on_restart=lambda: _start_nivel2_gameplay(game))
+    game.states.switch_to(scene)
 
 
 def _go_to_nivel2(game) -> None:
@@ -161,14 +176,7 @@ def _go_to_nivel2(game) -> None:
             lines=["ROTACIÓN 2/4"],
         ),
     ]
-
-    def _arrancar() -> None:
-        player = Player(40, 280)
-        config = _build_nivel2_config()
-        scene = PlayScene(game, player, config, on_level_complete=lambda: _go_to_nivel3(game))
-        game.states.switch_to(scene)
-
-    game.states.switch_to(CinematicScene(game, beats, on_finish=_arrancar))
+    game.states.switch_to(CinematicScene(game, beats, on_finish=lambda: _start_nivel2_gameplay(game)))
 
 
 # ======================================================================
@@ -186,7 +194,7 @@ def _build_nivel3_config() -> LevelConfig:
     mutante_bosque = Enemy(520, 280, width=32, height=40,
                            patrol_min_x=460, patrol_max_x=640, is_mutant=True)
 
-    checkpoint = Checkpoint(1100, 256, 32, 64)  # transición bosque -> playa
+    checkpoint = Checkpoint(1100, 280, 48, 40)  # transición bosque -> playa
 
     ciclo_1 = CyclicPlatform(1320, 260, 100, 16, visible_time=2.0, hidden_time=1.5, start_visible=True)
     ciclo_2 = CyclicPlatform(1560, 230, 100, 16, visible_time=1.5, hidden_time=1.5, start_visible=False)
@@ -212,7 +220,20 @@ def _build_nivel3_config() -> LevelConfig:
         goal_rect=goal_rect,
         has_danger=True,
         music_path=f"{settings.AUDIO_DIR}/music/nivel3.ogg",
+        background_path=f"{settings.ASSETS_DIR}/backgrounds/nivel3a.png",       # bosque
+        background_path_2=f"{settings.ASSETS_DIR}/backgrounds/nivel3b.png",     # playa
+        background_switch_x=1100,  # cambia en el checkpoint (bosque -> playa)
+        background_parallax=0.5,
     )
+
+
+def _start_nivel3_gameplay(game) -> None:
+    player = Player(40, 280)
+    config = _build_nivel3_config()
+    scene = PlayScene(game, player, config,
+                      on_level_complete=lambda: start_rotacion4_demo(game),
+                      on_restart=lambda: _start_nivel3_gameplay(game))
+    game.states.switch_to(scene)
 
 
 def _go_to_nivel3(game) -> None:
@@ -222,15 +243,7 @@ def _go_to_nivel3(game) -> None:
             lines=["ROTACIÓN 3/4"],
         ),
     ]
-
-    def _arrancar() -> None:
-        player = Player(40, 280)
-        config = _build_nivel3_config()
-        # Al completar el Nivel 3 arranca la secuencia final de la Rotación 4 (la isla).
-        scene = PlayScene(game, player, config, on_level_complete=lambda: start_rotacion4_demo(game))
-        game.states.switch_to(scene)
-
-    game.states.switch_to(CinematicScene(game, beats, on_finish=_arrancar))
+    game.states.switch_to(CinematicScene(game, beats, on_finish=lambda: _start_nivel3_gameplay(game)))
 
 
 # ======================================================================
@@ -263,6 +276,8 @@ def _build_isla_config() -> LevelConfig:
         has_danger=False,     # sin obstáculos, sin enemigos, sin power-ups
         show_hud=False,        # nada que mostrar: solo caminar, calma y melancolía
         music_path=f"{settings.AUDIO_DIR}/music/isla_calma.ogg",
+        background_path=f"{settings.ASSETS_DIR}/backgrounds/nivel4.png",
+        background_parallax=0.5,
     )
 
 
