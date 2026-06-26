@@ -92,11 +92,11 @@ SFX_FRASCO = f"{SFX_DIR}/frasco.wav"
 SFX_PAUSE = f"{SFX_DIR}/pause.wav"
 SFX_BOOST = f"{SFX_DIR}/boost.wav"
 
-MUSIC_MENU = f"{MUSIC_DIR}/menu.ogg"
-MUSIC_LEVEL_1 = f"{MUSIC_DIR}/nivel1.ogg"
-MUSIC_LEVEL_2 = f"{MUSIC_DIR}/nivel2.ogg"
-MUSIC_LEVEL_3 = f"{MUSIC_DIR}/nivel3.ogg"
-MUSIC_LEVEL_4 = f"{MUSIC_DIR}/isla_calma.ogg"
+MUSIC_MENU = f"{MUSIC_DIR}/menu.mp3"
+MUSIC_LEVEL_1 = f"{MUSIC_DIR}/nivel1.mp3"
+MUSIC_LEVEL_2 = f"{MUSIC_DIR}/nivel2.mp3"
+MUSIC_LEVEL_3 = f"{MUSIC_DIR}/nivel3.mp3"
+MUSIC_LEVEL_4 = f"{MUSIC_DIR}/isla_calma.mp3"
 
 # ======================================================================
 # A partir de aquí: constantes agregadas por Persona 2 (Player, enemigos,

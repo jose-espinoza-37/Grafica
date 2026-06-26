@@ -44,21 +44,21 @@ _LEVEL_PATHS = {
 }
 
 _LEVEL_META = {
-    1: dict(music_path=f"{settings.AUDIO_DIR}/music/nivel1.wav",
+    1: dict(music_path=f"{settings.AUDIO_DIR}/music/nivel1.mp3",
             has_danger=True, show_frasco_dialogue=True, intro_autowalk_seconds=1.2,
             background_path=f"{settings.BACKGROUNDS_DIR}/nivel1.png"),
-    2: dict(music_path=f"{settings.AUDIO_DIR}/music/nivel2.wav",
+    2: dict(music_path=f"{settings.AUDIO_DIR}/music/nivel2.mp3",
             has_danger=True, show_frasco_dialogue=False,
             background_path=f"{settings.BACKGROUNDS_DIR}/nivel2.png"),
     3: dict(has_danger=True, show_frasco_dialogue=False,
             # Nivel combinado Bosque -> Playa: tanto el fondo como la música
             # cambian al activar el checkpoint que marca la transición entre
             # ambas mitades (ver lore: bosque -> playa distorsionada).
-            music_path=f"{settings.AUDIO_DIR}/music/nivel3a.wav",
-            music_path_after_checkpoint=f"{settings.AUDIO_DIR}/music/nivel3b.wav",
+            music_path=f"{settings.AUDIO_DIR}/music/nivel3a.mp3",
+            music_path_after_checkpoint=f"{settings.AUDIO_DIR}/music/nivel3b.mp3",
             background_path=f"{settings.BACKGROUNDS_DIR}/nivel3a.png",
             background_path_after_checkpoint=f"{settings.BACKGROUNDS_DIR}/nivel3b.png"),
-    4: dict(music_path=f"{settings.AUDIO_DIR}/music/isla_calma.wav",
+    4: dict(music_path=f"{settings.AUDIO_DIR}/music/isla_calma.mp3",
             has_danger=False, show_hud=False,
             background_path=f"{settings.BACKGROUNDS_DIR}/nivel4.png"),
 }
@@ -115,6 +115,7 @@ def start_new_game(game) -> None:
             ],
         ),
     ]
+    game.audio.play_music(settings.MUSIC_LEVEL_1)
     game.states.switch_to(CinematicScene(game, beats, on_finish=lambda: _go_to_nivel1(game)))
 
 
@@ -133,6 +134,7 @@ def _on_nivel1_complete(game) -> None:
         ),
     ]
 
+    game.audio.play_music(settings.MUSIC_LEVEL_2)
     game.states.switch_to(CinematicScene(game, beats, on_finish=lambda: _go_to_nivel2(game)))
 
 
@@ -154,6 +156,7 @@ def _on_nivel2_complete(game) -> None:
             ],
         ),
     ]
+    game.audio.play_music(f"{settings.AUDIO_DIR}/music/nivel3a.mp3")
     game.states.switch_to(CinematicScene(game, beats, on_finish=lambda: _go_to_nivel3(game)))
 
 
@@ -176,6 +179,7 @@ def _on_nivel3_complete(game) -> None:
         ),
     ]
     # Tras el 3er frasco el botiquín queda vacío -> arranca la Rotación 4 (Nivel 4).
+    game.audio.play_music(settings.MUSIC_LEVEL_4)
     game.states.switch_to(CinematicScene(game, beats, on_finish=lambda: start_rotacion4_demo(game)))
 
 

@@ -7,11 +7,11 @@
     {
       "firstgid": 1,
       "image": "tileset_nivel4.png",
-      "imagewidth": 32,
+      "imagewidth": 64,
       "imageheight": 32,
       "tilewidth": 16,
       "tileheight": 16,
-      "columns": 2,
+      "columns": 4,
       "tilecount": 4
     }
   ],

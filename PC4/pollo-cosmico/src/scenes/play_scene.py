@@ -116,8 +116,11 @@ class PlayScene(Scene):
         self.player.heal_full()
         self.camera.x, self.camera.y = 0.0, 0.0
 
-        if self.config.music_path:
-            self.game.audio.play_music(self.config.music_path)
+        # La musica del nivel ya empieza a sonar desde la cinematica que lo
+        # introduce (ver intro_flow.py), asi que aqui ya no hace falta
+        # relanzarla -- AudioManager.play_music ademas ignora la llamada si
+        # ya esta sonando la misma pista, asi que tampoco habria roto nada
+        # dejarla, pero es codigo redundante que se quita por limpieza.
 
         if self._intro_timer > 0:
             self.game.input.set_scripted_input({"right": True})
