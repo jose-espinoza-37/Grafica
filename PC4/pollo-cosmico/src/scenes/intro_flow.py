@@ -51,13 +51,8 @@ _LEVEL_META = {
             has_danger=True, show_frasco_dialogue=False,
             background_path=f"{settings.BACKGROUNDS_DIR}/nivel2.png"),
     3: dict(has_danger=True, show_frasco_dialogue=False,
-            # Nivel combinado Bosque -> Playa: tanto el fondo como la música
-            # cambian al activar el checkpoint que marca la transición entre
-            # ambas mitades (ver lore: bosque -> playa distorsionada).
             music_path=f"{settings.AUDIO_DIR}/music/nivel3a.mp3",
-            music_path_after_checkpoint=f"{settings.AUDIO_DIR}/music/nivel3b.mp3",
-            background_path=f"{settings.BACKGROUNDS_DIR}/nivel3a.png",
-            background_path_after_checkpoint=f"{settings.BACKGROUNDS_DIR}/nivel3b.png"),
+            background_path=f"{settings.BACKGROUNDS_DIR}/nivel3a.png"),
     4: dict(music_path=f"{settings.AUDIO_DIR}/music/isla_calma.mp3",
             has_danger=False, show_hud=False,
             background_path=f"{settings.BACKGROUNDS_DIR}/nivel4.png"),
