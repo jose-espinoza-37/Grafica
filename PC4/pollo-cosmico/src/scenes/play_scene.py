@@ -178,13 +178,18 @@ class PlayScene(Scene):
                 if self.config.music_path_after_checkpoint:
                     self.game.audio.play_music(self.config.music_path_after_checkpoint)
 
-        if self.player.defeated:
-            self._respawn_player()
-
         self.camera.update(dt, self.player.rect)
 
-        if self.config.goal_rect and self.player.rect.colliderect(self.config.goal_rect):
-            self._complete_level()
+        # Verificar meta solo por X — evita que el jugador con doble salto
+        # vuele sobre el trigger y que una muerte en el mismo frame lo ignore.
+        if self.config.goal_rect:
+            g, p = self.config.goal_rect, self.player.rect
+            if p.right >= g.left and p.left <= g.right:
+                self._complete_level()
+                return
+
+        if self.player.defeated:
+            self._respawn_player()
 
     def _update_enemies(self, dt: float) -> None:
         for enemy in self.config.enemies:
@@ -210,6 +215,8 @@ class PlayScene(Scene):
         else:
             respawn_point = self.config.start_pos
         self.player.respawn_at(respawn_point)
+        for item in self.config.powerup_items:
+            item.reset()
 
     def _draw_background(self, surface: pygame.Surface) -> None:
         path = self._current_bg_path

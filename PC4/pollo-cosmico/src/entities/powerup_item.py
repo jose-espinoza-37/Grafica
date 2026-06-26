@@ -46,6 +46,12 @@ class PowerUpItem(Entity):
             self._anim_timer -= interval
             self._anim_frame = (self._anim_frame + 1) % 4
 
+    def reset(self) -> None:
+        self.collected = False
+        self.alive = True
+        self._anim_timer = 0.0
+        self._anim_frame = 0
+
     def try_collect(self, player) -> bool:
         if self.collected or not self.rect.colliderect(player.rect):
             return False
