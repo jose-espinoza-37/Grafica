@@ -255,7 +255,7 @@ class PlayScene(Scene):
                 pygame.draw.rect(surface, settings.COLOR_DEBUG_SOLID, self.camera.apply(solid))
 
         for zone in self.config.gravity_zones:
-            zone.draw(surface, self.camera)
+            zone.draw(surface, self.camera, self.game.assets)
         for pad in self.config.boost_pads:
             pad.draw(surface, self.camera)
         for item in self.config.powerup_items:

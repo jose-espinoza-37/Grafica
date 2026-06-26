@@ -3266,6 +3266,25 @@
     },
     {
       "type": "objectgroup",
+      "name": "GravityZones",
+      "objects": [
+        {
+          "x": 512,
+          "y": 176,
+          "width": 256,
+          "height": 160,
+          "properties": [
+            {
+              "name": "gravity_scale",
+              "type": "float",
+              "value": 0.35
+            }
+          ]
+        }
+      ]
+    },    
+    {
+      "type": "objectgroup",
       "name": "Meta",
       "objects": [
         {

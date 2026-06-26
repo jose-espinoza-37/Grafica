@@ -31,8 +31,24 @@ class GravityZone(Entity):
     def contains(self, other_rect: pygame.Rect) -> bool:
         return self.rect.colliderect(other_rect)
 
-    def draw(self, surface: pygame.Surface, camera) -> None:
-        self.draw_placeholder(surface, camera, self.rect, settings.COLOR_GRAVITY_ZONE)
+    def draw(self, surface: pygame.Surface, camera, assets=None) -> None:
+        if assets is None:
+            self.draw_placeholder(surface, camera, self.rect, settings.COLOR_GRAVITY_ZONE)
+            return
+
+        tile = assets.get_image(
+            f"{settings.SPRITES_DIR}/ui/gravity_zone.png",
+            size=(16, 16),
+        )
+
+        tile = tile.copy()
+        tile.set_alpha(25)
+
+        screen_rect = camera.apply(self.rect)
+
+        for y in range(screen_rect.top, screen_rect.bottom, 16):
+            for x in range(screen_rect.left, screen_rect.right, 16):
+                surface.blit(tile, (x, y))
 
 
 def get_gravity_scale(player_rect: pygame.Rect, zones: list[GravityZone]) -> float:
