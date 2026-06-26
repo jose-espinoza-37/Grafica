@@ -61,6 +61,7 @@ class LevelConfig:
     background_path: str | None = None
     background_path_after_checkpoint: str | None = None
     music_path_after_checkpoint: str | None = None
+    background_parallax: float = 0.0   # 0.0 = estático, 0.3-0.5 = parallax suave
     tilemap_renderer: object | None = None
 
 
@@ -214,14 +215,28 @@ class PlayScene(Scene):
         path = self._current_bg_path
         if not path:
             return
-        size = surface.get_size()
-        cache_key = f"{path}@{size}"
-        bg = self._bg_cache.get(cache_key)
-        if bg is None:
+        sw, sh = surface.get_width(), surface.get_height()
+        parallax = self.config.background_parallax
+
+        if parallax > 0:
             raw = self.game.assets.get_image(path)
-            bg  = pygame.transform.scale(raw, size)
-            self._bg_cache[cache_key] = bg
-        surface.blit(bg, (0, 0))
+            scale = sh / raw.get_height()
+            bw = max(sw, int(raw.get_width() * scale))
+            cache_key = f"{path}@px_{bw}x{sh}"
+            bg = self._bg_cache.get(cache_key)
+            if bg is None:
+                bg = pygame.transform.scale(raw, (bw, sh))
+                self._bg_cache[cache_key] = bg
+            off = int(max(0, min(self.camera.x * parallax, bw - sw)))
+            surface.blit(bg, (-off, 0))
+        else:
+            cache_key = f"{path}@{sw}x{sh}"
+            bg = self._bg_cache.get(cache_key)
+            if bg is None:
+                raw = self.game.assets.get_image(path)
+                bg = pygame.transform.scale(raw, (sw, sh))
+                self._bg_cache[cache_key] = bg
+            surface.blit(bg, (0, 0))
 
     def _current_solids(self) -> list[pygame.Rect]:
         solids = list(self.config.solids)
