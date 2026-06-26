@@ -56,6 +56,15 @@ class Game:
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    # Convierte coords de ventana → superficie base (640x360)
+                    win_w, win_h = self.window.get_size()
+                    scale = min(win_w / settings.BASE_WIDTH, win_h / settings.BASE_HEIGHT)
+                    ox = (win_w - int(settings.BASE_WIDTH  * scale)) // 2
+                    oy = (win_h - int(settings.BASE_HEIGHT * scale)) // 2
+                    bx = (event.pos[0] - ox) / scale
+                    by = (event.pos[1] - oy) / scale
+                    self.states.handle_mouse_click((bx, by))
                 self.states.handle_event(event)
 
             self.input.update(events)

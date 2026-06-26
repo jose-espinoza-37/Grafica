@@ -42,6 +42,11 @@ class StateManager:
         if self.current is not None:
             self.current.handle_event(event)
 
+    def handle_mouse_click(self, pos) -> None:
+        scene = self.current  # o como se llame el atributo de la escena activa
+        if hasattr(scene, 'menu'):
+            scene.menu.handle_click(pos)
+
     def update(self, dt: float) -> None:
         if self.current is not None:
             self.current.update(dt)
