@@ -15,22 +15,36 @@ import os
 import pygame
 
 from src.core.asset_manager import AssetManager
+from src.core import settings
 
 
 class AudioManager:
     def __init__(self, assets: AssetManager) -> None:
         self.assets = assets
-        self.sfx_volume = 0.8
-        self.music_volume = 0.6
+        self.sfx_volume = 0.5
+        self.music_volume = 0.2
         self.muted = False
         self._current_music: str | None = None
+        self.sound_volumes = {
+            settings.SFX_JUMP: 0.4,
+            settings.SFX_HIT_PLAYER: 0.6,
+            settings.SFX_HIT_ENEMY: 0.6,
+            settings.SFX_ENEMY_DEFEATED: 0,
+            settings.SFX_POWERUP_PLUMA: 0.35,
+            settings.SFX_POWERUP_PIO: 0.5,
+            settings.SFX_CHECKPOINT: 0.8,
+            settings.SFX_FRASCO: 0.8,
+            settings.SFX_PAUSE: 0.6,
+            settings.SFX_BOOST: 0.7,
+        }
 
     def play_sfx(self, path: str) -> None:
         if self.muted:
             return
         sound = self.assets.get_sound(path)
         if sound is not None:
-            sound.set_volume(self.sfx_volume)
+            volume = self.sound_volumes.get(path, 1.0)
+            sound.set_volume(self.sfx_volume * volume)
             sound.play()
 
     def play_music(self, path: str, loop: bool = True) -> None:

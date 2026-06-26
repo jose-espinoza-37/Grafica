@@ -80,7 +80,7 @@ class PlayScene(Scene):
             level_height=config.level_height,
         )
 
-        self._intro_timer = 0
+        self._intro_timer = -1
         self._completed = False
 
         self._current_bg_path = config.background_path
@@ -138,7 +138,11 @@ class PlayScene(Scene):
     def _update_gameplay(self, dt: float) -> None:
         solids = self._current_solids()
         gravity_scale = get_gravity_scale(self.player.rect, self.config.gravity_zones)
+
+        jumping = self.game.input.is_just_pressed("jump")
         self.player.update(dt, self.game.input, solids, gravity_scale=gravity_scale)
+        if jumping and (self.player.on_ground or self.player.powerups.double_jump_available):
+            self.game.audio.play_sfx(settings.SFX_JUMP)
 
         # ── Muerte por caída al vacío ─────────────────────────────────
         # Si el jugador cae más allá del límite inferior del mundo
