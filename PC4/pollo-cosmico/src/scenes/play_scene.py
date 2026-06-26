@@ -158,6 +158,7 @@ class PlayScene(Scene):
                 self.game.audio.play_sfx(settings.SFX_BOOST)
 
         for item in self.config.powerup_items:
+            item.update(dt)
             if item.try_collect(self.player):
                 if item.kind == item.KIND_DOUBLE_JUMP:
                     self.game.audio.play_sfx(settings.SFX_POWERUP_PLUMA)

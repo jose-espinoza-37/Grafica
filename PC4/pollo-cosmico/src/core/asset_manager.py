@@ -28,10 +28,9 @@ _SPRITE_SHEETS: dict[str, tuple[str, int, int]] = {
     # Checkpoint: frame 0 = apagado, 1-3 = ciclo de pulso (ver checkpoint.py) -> 4 columnas.
     'checkpoint':    ('assets/sprites/checkpoint/checkpoint_strip.png',             4, 1),
 
-    # Enemigos: por ahora se asume animación de patrulla simple, 4 columnas
-    # (igual que pollo_completo). AJUSTAR si el strip real tiene otro número.
-    'enemy_mutante': ('assets/sprites/enemies/mutante/mutante_strip.png',           4, 1),
-    'enemy_robot':   ('assets/sprites/enemies/robot/robot_strip.png',               4, 1),
+    # Enemigos: 6 fotogramas de ciclo de patrulla.
+    'enemy_mutante': ('assets/sprites/enemies/mutante/mutante_strip.png',           6, 1),
+    'enemy_robot':   ('assets/sprites/enemies/robot/robot_strip.png',               6, 1),
 
     # Power-ups: las keys deben coincidir con _SPRITE_KEY en powerup_item.py
     # ('pluma_cosmica' / 'disfraz_pio'), no con el nombre interno del kind.
